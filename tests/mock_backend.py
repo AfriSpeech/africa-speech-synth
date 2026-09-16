@@ -2,8 +2,8 @@
 import math
 import struct
 
-from africa_speech_synth import tts as tts_registry
-from africa_speech_synth.tts.base import Clip, TTSBackend, pcm_to_wav
+from afrispeech_synth import tts as tts_registry
+from afrispeech_synth.tts.base import Clip, TTSBackend, pcm_to_wav
 
 
 class MockTTS(TTSBackend):

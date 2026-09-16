@@ -1,4 +1,4 @@
-# africa-speech-synth
+# afrispeech-synth
 
 **Generate a synthetic speech dataset for any African language — from raw text to a
 training-ready HuggingFace dataset — with one command.**
@@ -9,13 +9,13 @@ them with a rule-based G2P, synthesises audio, and packages it as sharded Parque
 audio embedded — playable in the dataset viewer, loadable with one `load_dataset` call.
 
 ```bash
-pip install africa-speech-synth
+pip install afrispeech-synth
 export GEMINI_API_KEY=...
 
-africa-speech-synth run examples/twi.yaml
+afrispeech-synth run examples/twi.yaml
 ```
 
-**[Hear what it produces](https://huggingface.co/spaces/AfriSpeech/africa-speech-synth-samples)** —
+**[Hear what it produces](https://huggingface.co/spaces/AfriSpeech/afrispeech-synth-samples)** —
 one sample per language, 215 languages, a different voice each.
 
 It sits on the rest of the AfriSpeech stack:
@@ -49,14 +49,14 @@ africa-g2p has phoneme tables for **400** African languages, africa-corpus-build
 for **693**, and **215 are in both** — those need nothing from you but a name:
 
 ```bash
-africa-speech-synth run --lang Zulu --source corpus:zul --out out/zul
+afrispeech-synth run --lang Zulu --source corpus:zul --out out/zul
 ```
 
 **If your language has no corpus text, it still works — supply your own:**
 
 ```bash
-africa-speech-synth run --lang Afar --source file:my_afar_sentences.txt --out out/aar
-africa-speech-synth run --lang Afar --source hf:my-org/my-dataset#text  --out out/aar
+afrispeech-synth run --lang Afar --source file:my_afar_sentences.txt --out out/aar
+afrispeech-synth run --lang Afar --source hf:my-org/my-dataset#text  --out out/aar
 ```
 
 Any source works for any language, and you can mix them. If there's no G2P table either, add
@@ -66,8 +66,8 @@ unchanged.
 Check where yours stands:
 
 ```bash
-africa-speech-synth langs --search zulu     # zul  Zulu  ready  Atlantic-Congo
-africa-speech-synth langs --ready           # the 215 that need nothing from you
+afrispeech-synth langs --search zulu     # zul  Zulu  ready  Atlantic-Congo
+afrispeech-synth langs --ready           # the 215 that need nothing from you
 ```
 
 Languages are matched by exact code only. Matching by name would add ~73 more, but it pairs
@@ -129,17 +129,17 @@ afr        eng die aarde khemaak  ✗     en die aarde gemaak   ✓
 
 Universal is what the Ghana Twi dataset was built with and is the default, but it rewrites more
 than it should in some languages. `--dry-run` prints the selection without spending any API
-calls; `africa-speech-synth card config.yaml` shows the transform that will be recorded:
+calls; `afrispeech-synth card config.yaml` shows the transform that will be recorded:
 
 ```bash
-africa-speech-synth run --lang yor --source corpus:yor --normalise grapheme --dry-run
+afrispeech-synth run --lang yor --source corpus:yor --normalise grapheme --dry-run
 ```
 
 **4 · Synthesise.** Google Gemini TTS speaks the normalised transcript, in any of its
 **30 voices**:
 
 ```bash
-africa-speech-synth voices            # Zephyr Bright, Kore Firm, Sulafat Warm, …
+afrispeech-synth voices            # Zephyr Bright, Kore Firm, Sulafat Warm, …
 --voices Zephyr                       # one speaker
 --voices Zephyr,Kore,Sulafat          # rotated across utterances, so the dataset has three
 ```
@@ -157,9 +157,9 @@ generated from the run config.
 ## Install
 
 ```bash
-pip install africa-speech-synth            # core
-pip install "africa-speech-synth[gemini]"  # + the Gemini TTS backend
-pip install "africa-speech-synth[hf]"      # + hf: text sources (pulls datasets)
+pip install afrispeech-synth            # core
+pip install "afrispeech-synth[gemini]"  # + the Gemini TTS backend
+pip install "afrispeech-synth[hf]"      # + hf: text sources (pulls datasets)
 ```
 
 `afriso` and `africa-corpus-builder` are not on PyPI yet:
@@ -181,15 +181,15 @@ africa-corpus-builder every source except `corpus:` still works.
 ### Start from nothing
 
 ```bash
-africa-speech-synth init Yoruba          # writes yor.yaml
-africa-speech-synth run yor.yaml --dry-run   # select sentences, call no API
-africa-speech-synth run yor.yaml
+afrispeech-synth init Yoruba          # writes yor.yaml
+afrispeech-synth run yor.yaml --dry-run   # select sentences, call no API
+afrispeech-synth run yor.yaml
 ```
 
 ### Or stay on the command line
 
 ```bash
-africa-speech-synth run \
+afrispeech-synth run \
   --lang Twi \
   --source corpus:twi \
   --cover phoneme \
@@ -201,14 +201,14 @@ africa-speech-synth run \
 
 ### Samples gallery
 
-**[Hear it: AfriSpeech/africa-speech-synth-samples](https://huggingface.co/spaces/AfriSpeech/africa-speech-synth-samples)**
+**[Hear it: AfriSpeech/afrispeech-synth-samples](https://huggingface.co/spaces/AfriSpeech/afrispeech-synth-samples)**
 — one clip per language, each in a different voice. The page is built from this repo, so it
 has no repo of its own:
 
 ```bash
-africa-speech-synth samples --limit 20          # generate clips into space/
-africa-speech-synth space                       # build space/index.html, preview locally
-africa-speech-synth space --repo org/my-samples # publish it
+afrispeech-synth samples --limit 20          # generate clips into space/
+afrispeech-synth space                       # build space/index.html, preview locally
+afrispeech-synth space --repo org/my-samples # publish it
 ```
 
 `samples` covers every ready language by default and spreads the 30 voices evenly across them,
@@ -217,14 +217,14 @@ so the gallery is also the voice catalogue. Clips are compressed to MP3 if `ffmp
 ### One stage at a time
 
 ```bash
-africa-speech-synth select  config.yaml   # source + cover, writes sentences.txt
-africa-speech-synth synth   config.yaml   # synthesise (resumes by default)
-africa-speech-synth package config.yaml   # parquet + manifest + card
-africa-speech-synth push    config.yaml --repo org/name
+afrispeech-synth select  config.yaml   # source + cover, writes sentences.txt
+afrispeech-synth synth   config.yaml   # synthesise (resumes by default)
+afrispeech-synth package config.yaml   # parquet + manifest + card
+afrispeech-synth push    config.yaml --repo org/name
 
-africa-speech-synth langs --ready         # languages that need no text from you
-africa-speech-synth langs --search yor    # what one language needs
-africa-speech-synth voices                # the 30 voices you can pick from
+afrispeech-synth langs --ready         # languages that need no text from you
+afrispeech-synth langs --search yor    # what one language needs
+afrispeech-synth voices                # the 30 voices you can pick from
 ```
 
 Interrupted? Run the same command again — finished clips are skipped.
@@ -232,7 +232,7 @@ Interrupted? Run the same command again — finished clips are skipped.
 ### As a library
 
 ```python
-from africa_speech_synth import RunConfig, run
+from afrispeech_synth import RunConfig, run
 
 config = RunConfig(language="Twi", sources=["corpus:twi"], out="out/twi")
 config.select.cover = "phoneme"
@@ -245,7 +245,7 @@ run(config)
 Individual stages are importable too:
 
 ```python
-from africa_speech_synth import resolve, Normaliser, stage_sources, stage_select
+from afrispeech_synth import resolve, Normaliser, stage_sources, stage_select
 
 language   = resolve("Twi")
 normaliser = Normaliser(language, "grapheme")
@@ -321,8 +321,8 @@ ds[0]["audio"]["array"], ds[0]["text"], ds[0]["normalised_text"]
 A backend is one method. Register it and it becomes available as `tts.backend`:
 
 ```python
-from africa_speech_synth import tts
-from africa_speech_synth.tts.base import Clip, TTSBackend
+from afrispeech_synth import tts
+from afrispeech_synth.tts.base import Clip, TTSBackend
 
 class MyTTS(TTSBackend):
     name = "mytts"
@@ -351,8 +351,8 @@ generated dataset card says plainly that the audio is model-generated — leave 
 ## Development
 
 ```bash
-git clone https://github.com/AfriSpeech/africa-speech-synth
-cd africa-speech-synth
+git clone https://github.com/AfriSpeech/afrispeech-synth
+cd afrispeech-synth
 python3 -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 pytest

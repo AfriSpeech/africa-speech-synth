@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "africa-speech-synth"
+name = "afrispeech-synth"
 version = "0.1.0"
 description = "Generate synthetic speech datasets for African languages: source text, phoneme-coverage selection, africa-g2p normalisation, TTS synthesis, and a ready-to-train HuggingFace dataset."
 readme = "README.md"
@@ -33,14 +33,14 @@ hf = ["datasets>=2.14"]
 dev = ["pytest>=7.0"]
 
 [project.scripts]
-africa-speech-synth = "africa_speech_synth.cli:main"
+afrispeech-synth = "afrispeech_synth.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/AfriSpeech/africa-speech-synth"
-Issues = "https://github.com/AfriSpeech/africa-speech-synth/issues"
+Homepage = "https://github.com/AfriSpeech/afrispeech-synth"
+Issues = "https://github.com/AfriSpeech/afrispeech-synth/issues"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/africa_speech_synth"]
+packages = ["src/afrispeech_synth"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -7,7 +7,7 @@ set -euo pipefail
 : "${GEMINI_API_KEY:?export GEMINI_API_KEY first}"
 
 for lang in twi yor hau swh ewe gaa; do
-  africa-speech-synth run \
+  afrispeech-synth run \
     --lang "$lang" \
     --source "corpus:$lang" \
     --cover phoneme \

@@ -4,13 +4,13 @@ import os
 import pytest
 
 import mock_backend  # noqa: F401  (registers the "mock" backend)
-from africa_speech_synth import RunConfig, from_dict, resolve
-from africa_speech_synth.lang import Language
-from africa_speech_synth.normalise import Normaliser
-from africa_speech_synth.select import run as select_run, word_units
-from africa_speech_synth.sources import _parse, clean, collect, split_sentences
-from africa_speech_synth.tts.base import pcm_to_wav, wav_sample_rate
-from africa_speech_synth import pipeline
+from afrispeech_synth import RunConfig, from_dict, resolve
+from afrispeech_synth.lang import Language
+from afrispeech_synth.normalise import Normaliser
+from afrispeech_synth.select import run as select_run, word_units
+from afrispeech_synth.sources import _parse, clean, collect, split_sentences
+from afrispeech_synth.tts.base import pcm_to_wav, wav_sample_rate
+from afrispeech_synth import pipeline
 
 SENTENCES = [
     "Akwaaba mo nyinaa wo Ghana ha",
@@ -98,7 +98,7 @@ def test_normalise_none_is_passthrough():
 
 
 def test_missing_g2p_table_is_a_clear_error():
-    from africa_speech_synth.lang import LanguageNotSupported
+    from afrispeech_synth.lang import LanguageNotSupported
     with pytest.raises(LanguageNotSupported):
         Normaliser(Language(token="x", code="xxx", name="X"), "grapheme")
 
@@ -209,7 +209,7 @@ def test_macrolanguage_falls_back_to_a_member():
 # --------------------------------------------------------------- coverage & voices
 
 def test_voice_spread_is_even_and_uses_every_voice():
-    from africa_speech_synth import voices
+    from afrispeech_synth import voices
 
     assignment = voices.spread([f"l{i:03d}" for i in range(215)])
     counts = voices.distribution(assignment)
@@ -218,12 +218,12 @@ def test_voice_spread_is_even_and_uses_every_voice():
 
 
 def test_unknown_voice_is_caught():
-    from africa_speech_synth import voices
+    from afrispeech_synth import voices
     assert voices.unknown(["Zephyr", "Nope"]) == ["Nope"]
 
 
 def test_coverage_reports_three_tiers():
-    from africa_speech_synth import coverage
+    from afrispeech_synth import coverage
 
     catalogue = coverage.load()
     counts = catalogue.counts()
@@ -234,7 +234,7 @@ def test_coverage_reports_three_tiers():
 
 
 def test_coverage_status_labels():
-    from africa_speech_synth.coverage import Entry
+    from afrispeech_synth.coverage import Entry
 
     assert Entry("x", "X", has_g2p=True, has_text=True).status == "ready"
     assert Entry("x", "X", has_g2p=True).status == "bring text"
@@ -244,14 +244,14 @@ def test_coverage_status_labels():
 # --------------------------------------------------------------- samples gallery
 
 def _sample(code, name, voice, region="West Africa"):
-    from africa_speech_synth.samples import Sample
+    from afrispeech_synth.samples import Sample
     return Sample(code=code, name=name, family="Atlantic-Congo", region=region,
                   voice=voice, text="Akwaaba mo nyinaa wo ha",
                   normalised_text="akwaaba mo nyinaa wo ha", audio=f"audio/{code}.mp3")
 
 
 def test_sample_sentence_pick_respects_length_window():
-    from africa_speech_synth.samples import SAMPLE_MAX_CHARS, SAMPLE_MIN_CHARS, _pick_sentence
+    from afrispeech_synth.samples import SAMPLE_MAX_CHARS, SAMPLE_MIN_CHARS, _pick_sentence
 
     short, good, long = "too short", "x" * (SAMPLE_MIN_CHARS + 5), "y" * (SAMPLE_MAX_CHARS + 50)
     assert _pick_sentence([short, long, good]) == good
@@ -259,7 +259,7 @@ def test_sample_sentence_pick_respects_length_window():
 
 
 def test_gallery_page_renders_every_sample():
-    from africa_speech_synth import space
+    from afrispeech_synth import space
 
     samples = [_sample("twi", "Twi", "Zephyr"),
                _sample("yor", "Yoruba", "Puck"),
@@ -277,7 +277,7 @@ def test_gallery_page_renders_every_sample():
 
 
 def test_gallery_escapes_text():
-    from africa_speech_synth import space
+    from afrispeech_synth import space
 
     sample = _sample("twi", "Twi & <b>friends</b>", "Zephyr")
     sample.text = '<script>alert("x")</script>'
@@ -287,7 +287,7 @@ def test_gallery_escapes_text():
 
 
 def test_gallery_build_writes_space_files(tmp_path):
-    from africa_speech_synth import space
+    from afrispeech_synth import space
 
     space.build([_sample("twi", "Twi", "Zephyr")], str(tmp_path))
     readme = (tmp_path / "README.md").read_text(encoding="utf-8")
@@ -297,7 +297,7 @@ def test_gallery_build_writes_space_files(tmp_path):
 
 
 def test_env_file_does_not_override_real_environment(tmp_path, monkeypatch):
-    from africa_speech_synth.env import load
+    from afrispeech_synth.env import load
 
     (tmp_path / ".env").write_text('export GEMINI_API_KEY="from-file"\nOTHER=x\n',
                                    encoding="utf-8")
@@ -324,19 +324,19 @@ def test_universal_coverage_units_stay_language_units():
 
 
 def test_universal_is_the_default_mode():
-    from africa_speech_synth import RunConfig
+    from afrispeech_synth import RunConfig
     assert RunConfig().normalise == "universal"
 
 
 def test_every_non_default_mode_carries_a_warning():
-    from africa_speech_synth.normalise import MODES, MODE_WARNINGS
+    from afrispeech_synth.normalise import MODES, MODE_WARNINGS
     assert set(MODE_WARNINGS) == set(MODES) - {"universal"}
 
 
 # --------------------------------------------------------------- punctuation
 
 def test_only_phrasing_punctuation_survives():
-    from africa_speech_synth.normalise import strip_punctuation
+    from afrispeech_synth.normalise import strip_punctuation
 
     assert strip_punctuation("Hello, world! Is it ok? Yes.") == "Hello, world! Is it ok? Yes."
     assert strip_punctuation("a 'b' c") == "a b c"
@@ -348,7 +348,7 @@ def test_only_phrasing_punctuation_survives():
 
 
 def test_stripping_leaves_no_stray_spaces():
-    from africa_speech_synth.normalise import strip_punctuation
+    from afrispeech_synth.normalise import strip_punctuation
     assert strip_punctuation("word ' , next") == "word, next"
 
 
@@ -369,7 +369,7 @@ def test_ipa_modifier_letters_are_not_punctuation():
 
 def test_invisible_characters_are_removed():
     """Zero-width spaces sit inside words and pass every visible check."""
-    from africa_speech_synth.normalise import strip_punctuation
+    from afrispeech_synth.normalise import strip_punctuation
 
     assert strip_punctuation("nebe\u200brechi") == "neberechi"
     assert strip_punctuation("a\u200db\ufeffc") == "abc"

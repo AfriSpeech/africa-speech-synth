@@ -1,6 +1,6 @@
-"""africa-speech-synth — synthetic speech datasets for African languages.
+"""afrispeech-synth — synthetic speech datasets for African languages.
 
-    from africa_speech_synth import RunConfig, run
+    from afrispeech_synth import RunConfig, run
 
     config = RunConfig(language="twi", sources=["corpus:twi"])
     config.select.max_sentences = 500

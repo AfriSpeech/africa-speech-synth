@@ -4,7 +4,7 @@
 #   https://huggingface.co/datasets/ghanaopenai/ghana-twi-synthesized-speech
 #
 #   export GEMINI_API_KEY=...
-#   africa-speech-synth run examples/twi.yaml
+#   afrispeech-synth run examples/twi.yaml
 
 language: Twi
 

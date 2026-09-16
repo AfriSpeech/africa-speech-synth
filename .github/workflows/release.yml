@@ -2,7 +2,7 @@
 #
 # Uses PyPI Trusted Publishing (OIDC), so there is no API token in this repository's secrets.
 # GitHub mints a short-lived identity token that PyPI verifies against a publisher configured at
-# https://pypi.org/manage/account/publishing/ with owner AfriSpeech, repo africa-speech-synth,
+# https://pypi.org/manage/account/publishing/ with owner AfriSpeech, repo afrispeech-synth,
 # workflow release.yml, environment pypi. Because the project does not exist on PyPI yet, that
 # has to be added as a *pending* publisher — a normal one can only be attached to a project that
 # already exists. The first successful run creates the project and converts it automatically.
@@ -45,9 +45,9 @@ jobs:
       - name: Import the built wheel
         run: |
           pip install dist/*.whl
-          python -c "import africa_speech_synth; print(africa_speech_synth.__version__)"
-          africa-speech-synth --help > /dev/null
-          africa-speech-synth voices > /dev/null
+          python -c "import afrispeech_synth; print(afrispeech_synth.__version__)"
+          afrispeech-synth --help > /dev/null
+          afrispeech-synth voices > /dev/null
 
       # Run the suite against the *installed wheel*, from outside the source tree: the
       # package data and entry points are the things most likely to be missing from a

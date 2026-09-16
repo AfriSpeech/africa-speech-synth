@@ -26,7 +26,7 @@ class GeminiTTS(TTSBackend):
         except ImportError as exc:      # pragma: no cover
             raise TTSError(
                 "The Gemini backend needs the google-genai SDK:\n"
-                "    pip install 'africa-speech-synth[gemini]'"
+                "    pip install 'afrispeech-synth[gemini]'"
             ) from exc
         self._types = types
 

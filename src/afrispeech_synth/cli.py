@@ -1,12 +1,12 @@
 """Command line interface.
 
-    africa-speech-synth run config.yaml            # the whole pipeline
-    africa-speech-synth run config.yaml --dry-run  # select sentences only
-    africa-speech-synth select --lang twi --source corpus:twi --max-sentences 2000
-    africa-speech-synth synth  config.yaml         # resume synthesis only
-    africa-speech-synth package config.yaml        # rebuild parquet from the work dir
-    africa-speech-synth push    config.yaml --repo AfriSpeech/twi-synthetic-speech
-    africa-speech-synth langs --search yor
+    afrispeech-synth run config.yaml            # the whole pipeline
+    afrispeech-synth run config.yaml --dry-run  # select sentences only
+    afrispeech-synth select --lang twi --source corpus:twi --max-sentences 2000
+    afrispeech-synth synth  config.yaml         # resume synthesis only
+    afrispeech-synth package config.yaml        # rebuild parquet from the work dir
+    afrispeech-synth push    config.yaml --repo AfriSpeech/twi-synthetic-speech
+    afrispeech-synth langs --search yor
 """
 from __future__ import annotations
 
@@ -155,7 +155,7 @@ def cmd_samples(args) -> int:
     codes = [c.strip() for c in args.langs.split(",") if c.strip()] if args.langs else None
     built = samples_module.build(config, args.dir, codes=codes, limit=args.limit,
                                  resume=not args.no_resume)
-    print(f"\n{len(built)} samples in {args.dir}. Next: africa-speech-synth space "
+    print(f"\n{len(built)} samples in {args.dir}. Next: afrispeech-synth space "
           f"--dir {args.dir} --repo org/name")
     return 0
 
@@ -200,13 +200,13 @@ def cmd_init(args) -> int:
     config.tts.context = f"speak in {language.name} accent"
     path = args.config or f"{language.code}.yaml"
     config_module.dump(config, path)
-    print(f"Wrote {path}. Edit it, then: africa-speech-synth run {path}")
+    print(f"Wrote {path}. Edit it, then: afrispeech-synth run {path}")
     return 0
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="africa-speech-synth",
+        prog="afrispeech-synth",
         description="Generate synthetic speech datasets for African languages.",
     )
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")

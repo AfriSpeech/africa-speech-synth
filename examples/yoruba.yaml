@@ -2,7 +2,7 @@
 # africa-corpus-builder, and phoneme cover keeps the API bill small.
 #
 #   export GEMINI_API_KEY=...
-#   africa-speech-synth run examples/yoruba.yaml
+#   afrispeech-synth run examples/yoruba.yaml
 
 language: Yoruba
 

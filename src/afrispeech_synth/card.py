@@ -37,7 +37,7 @@ configs:
 # {title}
 
 Synthetic speech for **{lang_name}** ({lang_code}), generated with
-[`africa-speech-synth`](https://github.com/AfriSpeech/africa-speech-synth).
+[`afrispeech-synth`](https://github.com/AfriSpeech/afrispeech-synth).
 
 {counts}
 
@@ -95,8 +95,8 @@ Audio was generated with **{tts_model}** (backend `{tts_backend}`), voice(s)
 ## Reproducing it
 
 ```bash
-pip install africa-speech-synth
-africa-speech-synth run config.yaml
+pip install afrispeech-synth
+afrispeech-synth run config.yaml
 ```
 
 ```yaml
@@ -118,7 +118,7 @@ terms above. Source text keeps the licence of its own corpus, linked above.
 
 ---
 
-Built with [africa-speech-synth](https://github.com/AfriSpeech/africa-speech-synth) ·
+Built with [afrispeech-synth](https://github.com/AfriSpeech/afrispeech-synth) ·
 [africa-g2p](https://github.com/AfriSpeech/africa-g2p) ·
 [africa-corpus-builder](https://github.com/AfriSpeech/africa-corpus-builder) ·
 [afriso](https://github.com/AfriSpeech/afriso) — generated {date}.

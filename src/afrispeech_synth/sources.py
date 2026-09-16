@@ -81,7 +81,7 @@ def from_hf(repo: str, column: str, split=None, limit=None) -> List[str]:
     except ImportError as exc:
         raise SourceError(
             "The `hf:` source needs the datasets library:\n"
-            "    pip install 'africa-speech-synth[hf]'"
+            "    pip install 'afrispeech-synth[hf]'"
         ) from exc
 
     splits = [split] if split else ["train", "validation", "test"]

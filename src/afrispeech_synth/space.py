@@ -34,7 +34,7 @@ tags:
 # {title}
 
 One synthetic speech sample per African language, generated with
-[africa-speech-synth](https://github.com/AfriSpeech/africa-speech-synth).
+[afrispeech-synth](https://github.com/AfriSpeech/afrispeech-synth).
 
 Each language is spoken by a different one of Google Gemini TTS's 30 voices, so browsing the
 gallery covers the whole voice catalogue. Audio is model-generated, not recorded speech.
@@ -194,7 +194,7 @@ def render(samples: Sequence[Sample], title: str = "African Speech Samples") -> 
 <header>
   <h1>{html.escape(title)}</h1>
   <p class="lede">One synthetic speech sample per African language, built with
-    <a href="https://github.com/AfriSpeech/africa-speech-synth">africa-speech-synth</a>.
+    <a href="https://github.com/AfriSpeech/afrispeech-synth">afrispeech-synth</a>.
     Each language is spoken by a <strong>different</strong> one of Gemini TTS's 30 voices, so the
     gallery covers the whole catalogue — the voice badge tells you which one to ask for in your
     own run.</p>
