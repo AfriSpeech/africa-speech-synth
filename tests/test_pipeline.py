@@ -352,3 +352,11 @@ def test_ipa_modifier_letters_are_not_punctuation():
     out = Normaliser(resolve("xho"), "ipa")("ukuba xa")
     assert "ʼ" in out      # ejective mark
     assert "ǁ" in out      # lateral click
+
+
+def test_invisible_characters_are_removed():
+    """Zero-width spaces sit inside words and pass every visible check."""
+    from africa_speech_synth.normalise import strip_punctuation
+
+    assert strip_punctuation("nebe\u200brechi") == "neberechi"
+    assert strip_punctuation("a\u200db\ufeffc") == "abc"

@@ -61,7 +61,14 @@ def strip_punctuation(text: str, keep: str = KEPT_PUNCTUATION) -> str:
     """
     out = []
     for char in text:
-        if char in keep or not unicodedata.category(char)[0] in ("P", "S"):
+        category = unicodedata.category(char)
+        # Invisible formatting characters carry no sound but sit inside words — the
+        # Amharic source has 23 zero-width spaces in one sentence ("nebe\u200brechi").
+        # They survive every letter-based check precisely because they are invisible,
+        # and split words for anything tokenising downstream.
+        if category == "Cf" or char == "\u200b":
+            continue
+        if char in keep or category[0] not in ("P", "S"):
             out.append(char)
     # Stripping can leave doubled spaces, or a space before a mark that closes a
     # clause. Only those close up: pulling the space before an opening quote gives
