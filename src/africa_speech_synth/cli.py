@@ -1,0 +1,229 @@
+"""Command line interface.
+
+    africa-speech-synth run config.yaml            # the whole pipeline
+    africa-speech-synth run config.yaml --dry-run  # select sentences only
+    africa-speech-synth select --lang twi --source corpus:twi --max-sentences 2000
+    africa-speech-synth synth  config.yaml         # resume synthesis only
+    africa-speech-synth package config.yaml        # rebuild parquet from the work dir
+    africa-speech-synth push    config.yaml --repo AfriSpeech/twi-synthetic-speech
+    africa-speech-synth langs --search yor
+"""
+from __future__ import annotations
+
+import argparse
+import os
+import sys
+
+from . import __version__
+from . import card as card_module
+from . import config as config_module
+from . import package as package_module
+from . import pipeline
+from . import publish as publish_module
+from . import tts as tts_registry
+from .lang import resolve
+from .normalise import Normaliser
+
+
+def _config_from_args(args) -> config_module.RunConfig:
+    """A config file, CLI flags, or both — flags always win."""
+    if getattr(args, "config", None):
+        config = config_module.load(args.config)
+    else:
+        config = config_module.RunConfig()
+
+    overrides = {}
+    for flag, target in [
+        ("lang", "language"), ("out", "out"), ("work", "work"),
+        ("normalise", "normalise"),
+        ("cover", "select.cover"), ("min_freq", "select.min_freq"),
+        ("max_sentences", "select.max_sentences"),
+        ("min_chars", "select.min_chars"), ("max_chars", "select.max_chars"),
+        ("backend", "tts.backend"), ("model", "tts.model"),
+        ("concurrency", "tts.concurrency"), ("rpm", "tts.rpm"),
+        ("repo", "package.push_to"),
+    ]:
+        value = getattr(args, flag, None)
+        if value is not None:
+            overrides[target] = value
+    if getattr(args, "voices", None):
+        overrides["tts.voices"] = [v.strip() for v in args.voices.split(",") if v.strip()]
+    if getattr(args, "source", None):
+        config.sources = list(args.source)
+    if getattr(args, "format", None):
+        overrides["package.formats"] = [f.strip() for f in args.format.split(",") if f.strip()]
+
+    config_module.apply_overrides(config, overrides)
+    if not config.sources and getattr(args, "_needs_sources", True):
+        config.sources = [f"corpus:{resolve(config.language).code}"]
+    return config
+
+
+def cmd_run(args) -> int:
+    config = _config_from_args(args)
+    pipeline.run(config, resume=not args.no_resume, dry_run=args.dry_run)
+    return 0
+
+
+def cmd_select(args) -> int:
+    config = _config_from_args(args)
+    language = resolve(config.language)
+    normaliser = Normaliser(language, config.normalise)
+    sentences = pipeline.stage_sources(config, language)
+    selection = pipeline.stage_select(config, language, sentences, normaliser)
+    pipeline._save_sentences(config, selection.sentences, selection)
+    out = os.path.join(config.work_dir, pipeline.SENTENCES_FILE)
+    print(f"\n{len(selection.sentences)} sentences -> {out}")
+    return 0
+
+
+def cmd_synth(args) -> int:
+    config = _config_from_args(args)
+    language = resolve(config.language)
+    sentences = pipeline.load_sentences(config)
+    if sentences is None:
+        print(f"No {pipeline.SENTENCES_FILE} in {config.work_dir}. Run `select` first, "
+              f"or use `run` to do everything.", file=sys.stderr)
+        return 1
+    normaliser = Normaliser(language, config.normalise)
+    pipeline.stage_synthesise(config, language, sentences, normaliser,
+                              resume=not args.no_resume)
+    return 0
+
+
+def cmd_package(args) -> int:
+    config = _config_from_args(args)
+    language = resolve(config.language)
+    pipeline.stage_package(config, language)
+    return 0
+
+
+def cmd_push(args) -> int:
+    config = _config_from_args(args)
+    repo = args.repo or config.package.push_to
+    if not repo:
+        print("No target repo. Pass --repo org/name or set package.push_to.", file=sys.stderr)
+        return 1
+    publish_module.push(config.out, repo, private=config.package.private)
+    return 0
+
+
+def cmd_card(args) -> int:
+    config = _config_from_args(args)
+    language = resolve(config.language)
+    clips = len(package_module.Workspace(config.work_dir).records()) if \
+        os.path.exists(config.work_dir) else 0
+    print(card_module.render(config, language, clips))
+    return 0
+
+
+def cmd_langs(args) -> int:
+    from africa_g2p import registry
+
+    entries = sorted(registry().values(), key=lambda e: e.get("name", e["code"]))
+    if args.search:
+        needle = args.search.lower()
+        entries = [e for e in entries
+                   if needle in e["code"].lower()
+                   or needle in str(e.get("name", "")).lower()
+                   or any(needle in str(a).lower() for a in e.get("alt_names") or [])]
+    for entry in entries:
+        print(f"{entry['code']:<6} {entry.get('name', ''):<32} {entry.get('family', '')}")
+    print(f"\n{len(entries)} languages with an africa-g2p table.", file=sys.stderr)
+    return 0
+
+
+def cmd_init(args) -> int:
+    language = resolve(args.lang)
+    config = config_module.RunConfig(
+        language=language.code,
+        sources=[f"corpus:{language.code}"],
+        out=args.out or f"out/{language.code}",
+    )
+    config.select.max_sentences = 2000
+    config.tts.context = f"speak in {language.name} accent"
+    path = args.config or f"{language.code}.yaml"
+    config_module.dump(config, path)
+    print(f"Wrote {path}. Edit it, then: africa-speech-synth run {path}")
+    return 0
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="africa-speech-synth",
+        description="Generate synthetic speech datasets for African languages.",
+    )
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    def add_common(sub, with_config=True):
+        if with_config:
+            sub.add_argument("config", nargs="?", help="YAML run config")
+        sub.add_argument("--lang", help="Language name or code (e.g. Twi, twi, yor)")
+        sub.add_argument("--source", action="append",
+                         help="Text source URI; repeatable (corpus:twi, hf:org/ds#col, file:x.txt)")
+        sub.add_argument("--out", help="Output directory")
+        sub.add_argument("--work", help="Work directory (default: <out>/work)")
+        sub.add_argument("--normalise", choices=["grapheme", "ipa", "none"])
+        sub.add_argument("--cover", choices=["phoneme", "word", "none"])
+        sub.add_argument("--min-freq", type=int)
+        sub.add_argument("--max-sentences", type=int)
+        sub.add_argument("--min-chars", type=int)
+        sub.add_argument("--max-chars", type=int)
+        sub.add_argument("--backend", choices=tts_registry.available())
+        sub.add_argument("--model")
+        sub.add_argument("--voices", help="Comma-separated voice names, round-robined")
+        sub.add_argument("--concurrency", type=int)
+        sub.add_argument("--rpm", type=int)
+        sub.add_argument("--format", help="Comma-separated: parquet,ljspeech")
+        sub.add_argument("--repo", help="HuggingFace dataset repo to push to")
+        return sub
+
+    run_parser = add_common(subparsers.add_parser("run", help="Run the whole pipeline"))
+    run_parser.add_argument("--dry-run", action="store_true",
+                            help="Select sentences and stop, without calling the TTS API")
+    run_parser.add_argument("--no-resume", action="store_true",
+                            help="Ignore existing work and start over")
+    run_parser.set_defaults(func=cmd_run)
+
+    add_common(subparsers.add_parser("select", help="Source + select sentences only")
+               ).set_defaults(func=cmd_select)
+
+    synth_parser = add_common(subparsers.add_parser("synth", help="Synthesise selected sentences"))
+    synth_parser.add_argument("--no-resume", action="store_true")
+    synth_parser.set_defaults(func=cmd_synth)
+
+    add_common(subparsers.add_parser("package", help="Build parquet + manifest + card")
+               ).set_defaults(func=cmd_package)
+    add_common(subparsers.add_parser("push", help="Upload a packaged dataset to the Hub")
+               ).set_defaults(func=cmd_push)
+    add_common(subparsers.add_parser("card", help="Print the dataset card")
+               ).set_defaults(func=cmd_card)
+
+    init_parser = subparsers.add_parser("init", help="Write a starter config for a language")
+    init_parser.add_argument("lang", help="Language name or code")
+    init_parser.add_argument("--config", help="Config path to write")
+    init_parser.add_argument("--out", help="Output directory to record in the config")
+    init_parser.set_defaults(func=cmd_init)
+
+    langs_parser = subparsers.add_parser("langs", help="List languages africa-g2p supports")
+    langs_parser.add_argument("--search", help="Filter by code, name or alternative name")
+    langs_parser.set_defaults(func=cmd_langs)
+
+    return parser
+
+
+def main(argv=None) -> int:
+    args = build_parser().parse_args(argv)
+    try:
+        return args.func(args)
+    except KeyboardInterrupt:
+        print("\nInterrupted. Re-run the same command to resume.", file=sys.stderr)
+        return 130
+    except Exception as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+.env
+work/
+out/
+corpora/
+data/
+*.wav
+*.parquet
+.pytest_cache/

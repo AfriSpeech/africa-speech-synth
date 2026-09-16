@@ -1,0 +1,268 @@
+# africa-speech-synth
+
+**Generate a synthetic speech dataset for any African language — from raw text to a
+training-ready HuggingFace dataset — with one command.**
+
+Most African languages have no recorded speech corpus, and recording one is slow and
+expensive. This pipeline builds a synthetic one instead: it pulls text for the language,
+picks the smallest set of sentences that still covers every phoneme, normalises them with
+a rule-based G2P, synthesises audio, and packages the result as sharded Parquet with the
+audio embedded — playable in the dataset viewer, loadable with one `load_dataset` call.
+
+```bash
+pip install africa-speech-synth
+export GEMINI_API_KEY=...
+
+africa-speech-synth run examples/twi.yaml
+```
+
+It sits on the rest of the AfriSpeech stack:
+
+| Library | What it does here |
+|---|---|
+| [africa-corpus-builder](https://github.com/AfriSpeech/africa-corpus-builder) | Supplies source text for **693 African languages** |
+| [africa-g2p](https://github.com/AfriSpeech/africa-g2p) | Phoneme normalisation for **400 languages**, and the phoneme units selection covers |
+| [afriso](https://github.com/AfriSpeech/afriso) | Resolves `Twi`, `tw`, `aka`, `Asante Twi` to one code all three libraries agree on |
+
+The companion to [afrispeech-selector](https://github.com/AfriSpeech/afrispeech-selector),
+which builds datasets from **recorded** African speech. Use that where recordings exist;
+use this where they don't.
+
+---
+
+## The pipeline
+
+```
+ source ──► select ──► normalise ──► synthesise ──► package
+  text      phoneme      africa-g2p      TTS API     parquet + card
+   │         cover          │              │            │
+   └ corpus:twi             └ grapheme     └ resumable  └ push to the Hub
+     hf:org/ds#col            or IPA         + retries
+     file:x.txt
+```
+
+**1 · Source.** Combine any number of text sources; duplicates are dropped in first-seen order.
+
+```yaml
+sources:
+  - corpus:twi                                               # africa-corpus-builder
+  - hf:ghanaopenai/Ghana_English-Twi_Code-switching_Speech#transcript
+  - file:my_sentences.txt
+```
+
+**2 · Select.** Greedy set cover over **phoneme** units (default) or **word** units. The point
+of a synthetic corpus is not many sentences but every sound in enough contexts — cover gets
+there with far fewer utterances, and every sentence dropped is a TTS call you don't pay for.
+
+```
+  covered 43/43 phoneme units (100.0%) with 812 sentences
+```
+
+**3 · Normalise.** `africa-g2p` rewrites each sentence into the language's own phoneme units
+(multigraphs like `ny`, `kp`, `gb` kept whole), or into IPA when one model spans several
+languages. The result is stored as `normalised_text` and is what the TTS model is actually
+asked to speak.
+
+**4 · Synthesise.** Async, rate-limited, and **resumable** — every finished clip writes its own
+audio file plus a sidecar record, so an interrupted run restarts exactly where it stopped and
+nothing is ever half-written. Retries back off on 429s and empty responses.
+
+**5 · Package.** Size-based Parquet shards with audio bytes embedded (the viewer plays them
+inline), a `metadata.jsonl` manifest, an LJSpeech export for Piper/VITS/MeloTTS, and a dataset
+card generated from the run config, so the provenance of every clip is on the page.
+
+---
+
+## Install
+
+```bash
+pip install africa-speech-synth          # core
+pip install "africa-speech-synth[gemini]"  # + the Gemini TTS backend
+```
+
+`afriso` and `africa-corpus-builder` are not on PyPI yet:
+
+```bash
+pip install "afriso @ git+https://github.com/AfriSpeech/afriso"
+
+git clone https://github.com/AfriSpeech/africa-corpus-builder
+export AFRICA_CORPUS_PATH=$PWD/africa-corpus-builder
+```
+
+Both are optional. Without `afriso` you pass codes rather than names; without
+africa-corpus-builder every source except `corpus:` still works.
+
+---
+
+## Usage
+
+### Start from nothing
+
+```bash
+africa-speech-synth init Yoruba          # writes yor.yaml
+africa-speech-synth run yor.yaml --dry-run   # select sentences, call no API
+africa-speech-synth run yor.yaml
+```
+
+### Or stay on the command line
+
+```bash
+africa-speech-synth run \
+  --lang Twi \
+  --source corpus:twi \
+  --cover phoneme \
+  --max-sentences 2000 \
+  --voices Zephyr,Puck \
+  --out out/twi \
+  --repo AfriSpeech/twi-synthetic-speech
+```
+
+### One stage at a time
+
+```bash
+africa-speech-synth select  config.yaml   # source + cover, writes sentences.txt
+africa-speech-synth synth   config.yaml   # synthesise (resumes by default)
+africa-speech-synth package config.yaml   # parquet + manifest + card
+africa-speech-synth push    config.yaml --repo org/name
+africa-speech-synth langs --search yor    # which languages have a G2P table
+```
+
+Interrupted? Run the same command again — finished clips are skipped.
+
+### As a library
+
+```python
+from africa_speech_synth import RunConfig, run
+
+config = RunConfig(language="Twi", sources=["corpus:twi"], out="out/twi")
+config.select.cover = "phoneme"
+config.select.max_sentences = 2000
+config.tts.voices = ["Zephyr", "Puck"]
+
+run(config)
+```
+
+Individual stages are importable too:
+
+```python
+from africa_speech_synth import resolve, Normaliser, stage_sources, stage_select
+
+language   = resolve("Twi")
+normaliser = Normaliser(language, "grapheme")
+sentences  = stage_sources(config, language)
+selection  = stage_select(config, language, sentences, normaliser)
+
+print(selection.coverage, len(selection.sentences))
+```
+
+---
+
+## Configuration
+
+```yaml
+language: Twi                 # name, ISO 639-1/2/3 code, or alternative name
+sources:                      # corpus: | hf: | file:
+  - corpus:twi
+normalise: grapheme           # grapheme | ipa | none
+out: out/twi
+
+select:
+  cover: phoneme              # phoneme | word | none
+  min_freq: 1                 # only target units seen at least this often
+  max_sentences: 12000
+  min_chars: 20
+  max_chars: 240
+  seed: 0
+
+tts:
+  backend: gemini
+  model: gemini-3.1-flash-tts-preview
+  voices: [Zephyr]            # round-robined across utterances
+  context: speak in {language} accent
+  concurrency: 10
+  rpm: 200                    # requests per minute, enforced
+  max_retries: 5
+  sample_rate: 24000
+  api_key_env: GEMINI_API_KEY # the key is read from the environment, never the file
+
+package:
+  formats: [parquet, ljspeech]
+  shard_target_mb: 190
+  push_to: AfriSpeech/twi-synthetic-speech
+  private: false
+```
+
+CLI flags override any field. API keys are read only from the environment — never
+put one in a config file you intend to commit.
+
+---
+
+## Output
+
+```
+out/twi/
+├── data/train-00000-of-00019.parquet   # audio bytes embedded, viewer-playable
+├── metadata.jsonl                      # index, text, normalised_text, voice, shard
+├── sentences.txt                       # the selected source sentences
+├── README.md                           # generated dataset card
+└── work/                               # per-clip audio + sidecars (resume state)
+```
+
+```python
+from datasets import load_dataset
+ds = load_dataset("parquet", data_files="out/twi/data/*.parquet", split="train")
+ds[0]["audio"]["array"], ds[0]["text"], ds[0]["normalised_text"]
+```
+
+---
+
+## Adding a TTS backend
+
+A backend is one method. Register it and it becomes available as `tts.backend`:
+
+```python
+from africa_speech_synth import tts
+from africa_speech_synth.tts.base import Clip, TTSBackend
+
+class MyTTS(TTSBackend):
+    name = "mytts"
+    async def synth(self, text: str, voice: str) -> Clip:
+        audio = await my_api(text, voice)          # bytes
+        return Clip(audio=audio, mime_type="audio/wav",
+                    sample_rate=self.config.sample_rate, voice=voice)
+
+tts.register("mytts", lambda: MyTTS)
+```
+
+Raise `RetryableTTSError` for rate limits and transient failures; the runner backs off
+and retries. Raise `TTSError` for anything permanent.
+
+---
+
+## A note on synthetic speech
+
+Synthetic audio is a bootstrap, not a substitute for recorded speech. It inherits whatever
+accent and pronunciation errors the TTS model has, and a model trained only on it will learn
+those too. Listen to a sample before training, and mix in real recordings — from
+[afrispeech-selector](https://github.com/AfriSpeech/afrispeech-selector) — wherever they exist.
+Datasets built with this tool should say plainly that they are synthetic; the generated card does.
+
+---
+
+## Development
+
+```bash
+git clone https://github.com/AfriSpeech/africa-speech-synth
+cd africa-speech-synth
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e ".[dev]"
+pytest
+```
+
+The test suite runs the whole pipeline end to end against a mock backend, so it needs
+no API key and no network.
+
+## License
+
+MIT. Generated audio and transcripts are yours; source text keeps the licence of its own
+corpus.

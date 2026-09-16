@@ -1,0 +1,41 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "africa-speech-synth"
+version = "0.1.0"
+description = "Generate synthetic speech datasets for African languages: source text, phoneme-coverage selection, africa-g2p normalisation, TTS synthesis, and a ready-to-train HuggingFace dataset."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "AfriSpeech" }]
+keywords = ["tts", "speech-synthesis", "african-languages", "dataset", "asr", "g2p"]
+
+dependencies = [
+    "africa-g2p>=0.2.0",
+    "PyYAML>=6.0",
+    "datasets>=2.14",
+    "huggingface_hub>=0.20",
+]
+
+[project.optional-dependencies]
+# The Gemini TTS backend (the reference backend).
+gemini = ["google-genai>=0.3.0"]
+# Language-name resolution. Not on PyPI yet:
+#   pip install "afriso @ git+https://github.com/AfriSpeech/afriso"
+afriso = ["afriso"]
+dev = ["pytest>=7.0"]
+
+[project.scripts]
+africa-speech-synth = "africa_speech_synth.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/AfriSpeech/africa-speech-synth"
+Issues = "https://github.com/AfriSpeech/africa-speech-synth/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/africa_speech_synth"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

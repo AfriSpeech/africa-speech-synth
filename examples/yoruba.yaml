@@ -1,0 +1,31 @@
+# A language with no existing speech corpus at all: text comes entirely from
+# africa-corpus-builder, and phoneme cover keeps the API bill small.
+#
+#   export GEMINI_API_KEY=...
+#   africa-speech-synth run examples/yoruba.yaml
+
+language: Yoruba
+
+sources:
+  - corpus:yor
+
+normalise: grapheme
+out: out/yor
+
+select:
+  cover: phoneme
+  min_chars: 20
+  max_chars: 200
+  max_sentences: 3000
+
+tts:
+  backend: gemini
+  model: gemini-3.1-flash-tts-preview
+  # Several voices give the dataset speaker variety rather than one cloned voice.
+  voices: [Zephyr, Puck, Kore]
+  context: speak in Yoruba accent
+  concurrency: 10
+  rpm: 200
+
+package:
+  formats: [parquet, ljspeech]

@@ -1,0 +1,40 @@
+# Ghana Twi & code-switching synthetic speech.
+#
+# This is the run that produced the first dataset built with this pipeline:
+#   https://huggingface.co/datasets/ghanaopenai/ghana-twi-synthesized-speech
+#
+#   export GEMINI_API_KEY=...
+#   africa-speech-synth run examples/twi.yaml
+
+language: Twi
+
+sources:
+  # Greedy set cover picks the sentences; the corpus supplies the pool.
+  - corpus:twi
+  # Real code-switching transcripts, so the dataset is not purely written Twi.
+  - hf:ghanaopenai/Ghana_English-Twi_Code-switching_Speech#transcript
+
+# Native-orthography phoneme units, not IPA: better for a single-language TTS.
+normalise: grapheme
+
+out: out/twi
+
+select:
+  cover: phoneme        # every Twi phoneme appears at least once
+  min_chars: 20
+  max_chars: 240
+  max_sentences: 12000
+
+tts:
+  backend: gemini
+  model: gemini-3.1-flash-tts-preview
+  voices: [Zephyr]
+  context: speak in Twi accent
+  concurrency: 10
+  rpm: 200
+  sample_rate: 24000
+
+package:
+  formats: [parquet]
+  shard_target_mb: 190
+  # push_to: AfriSpeech/twi-synthetic-speech
