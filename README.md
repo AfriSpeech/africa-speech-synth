@@ -110,7 +110,7 @@ the TTS model is actually asked to speak.
 
 | `--normalise` | Twi example | When |
 |---|---|---|
-| `universal` *(default)* | `ho bobea onyankopon` | Every phoneme written with the letter most African languages use for it (`ɔ`→`o`, `ɛ`→`e`). Plain letters that TTS voices read reliably. |
+| `universal` *(default)* | `ho bobea onyankopon` | Every phoneme written with the letter most African languages use for it (`ɔ`→`o`, `ɛ`→`e`). Plain `a-z` only — needs africa-g2p ≥ 0.2.1. |
 | `grapheme` | `hɔ bɔbea onyankopɔn` | The language's own phoneme units, multigraphs (`ny`, `kp`) kept whole and special characters preserved. |
 | `ipa` | `hɔ bɔbea oɲankʰopʰɔn` | Phonetic symbols — for phoneme-level ASR work, not for speech generation. |
 | `none` | `hɔ bɔbea Onyankopɔn` | Send the raw text. Works for any language, G2P table or not. |

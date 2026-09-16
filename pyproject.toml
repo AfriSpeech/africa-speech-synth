@@ -13,7 +13,9 @@ authors = [{ name = "AfriSpeech" }]
 keywords = ["tts", "speech-synthesis", "african-languages", "dataset", "asr", "g2p"]
 
 dependencies = [
-    "africa-g2p>=0.2.0",
+    # 0.2.1 keeps the universal orthography to plain letters; earlier versions
+    # wrote ejectives with apostrophes, which a TTS voice reads as pauses.
+    "africa-g2p>=0.2.1",
     "PyYAML>=6.0",
     "datasets>=2.14",
     "huggingface_hub>=0.20",
