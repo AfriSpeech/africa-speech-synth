@@ -57,8 +57,11 @@ class PackageConfig:
 class RunConfig:
     language: str = "twi"
     sources: List[str] = field(default_factory=list)
-    # grapheme | ipa | none — what goes to the TTS model as the transcript.
-    normalise: str = "grapheme"
+    # universal | grapheme | ipa | none — what goes to the TTS model as the
+    # transcript. Universal is the default: it maps every phoneme onto the letter
+    # most African languages use for it, which TTS voices read more reliably than
+    # language-specific characters like ɔ, ɛ or stacked tone diacritics.
+    normalise: str = "universal"
     out: str = "out"
     work: Optional[str] = None      # defaults to <out>/work
     select: SelectConfig = field(default_factory=SelectConfig)

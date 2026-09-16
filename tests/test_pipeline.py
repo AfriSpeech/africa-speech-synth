@@ -308,3 +308,13 @@ def test_universal_coverage_units_stay_language_units():
     normaliser = Normaliser(resolve("twi"), "universal")
     assert normaliser.enabled
     assert normaliser.units("Akwaaba")[:3] == ["a", "kw", "a"]
+
+
+def test_universal_is_the_default_mode():
+    from africa_speech_synth import RunConfig
+    assert RunConfig().normalise == "universal"
+
+
+def test_every_non_default_mode_carries_a_warning():
+    from africa_speech_synth.normalise import MODES, MODE_WARNINGS
+    assert set(MODE_WARNINGS) == set(MODES) - {"universal"}

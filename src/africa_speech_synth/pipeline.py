@@ -20,7 +20,7 @@ from . import select as select_module
 from . import sources as sources_module
 from .config import RunConfig
 from .lang import Language, resolve
-from .normalise import Normaliser
+from .normalise import MODE_WARNINGS, Normaliser
 from .synth import build_utterances, synthesise
 
 SENTENCES_FILE = "sentences.txt"
@@ -112,6 +112,9 @@ def run(config: RunConfig, resume: bool = True, dry_run: bool = False) -> dict:
           f"{'' if language.has_g2p else ' — no africa-g2p table'}", flush=True)
 
     normaliser = Normaliser(language, config.normalise)
+    warning = MODE_WARNINGS.get(config.normalise)
+    if warning:
+        print(f"  note: {warning}", flush=True)
 
     sentences = load_sentences(config) if resume else None
     selection = None

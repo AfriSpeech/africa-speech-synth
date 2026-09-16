@@ -110,22 +110,27 @@ the TTS model is actually asked to speak.
 
 | `--normalise` | Twi example | When |
 |---|---|---|
-| `grapheme` *(default)* | `hɔ bɔbea onyankopɔn` | The language's own phoneme units, multigraphs (`ny`, `kp`) kept whole. Best for a single-language model. |
-| `universal` | `ho bobea onyankopon` | One shared letter set across languages (`ɔ`→`o`, `ɛ`→`e`), in plain letters. **Check it first** — see below. |
-| `ipa` | `hɔ bɔbea oɲankʰopʰɔn` | One shared phonetic inventory, for models spanning several languages. |
+| `universal` *(default)* | `ho bobea onyankopon` | Every phoneme written with the letter most African languages use for it (`ɔ`→`o`, `ɛ`→`e`). Plain letters that TTS voices read reliably. |
+| `grapheme` | `hɔ bɔbea onyankopɔn` | The language's own phoneme units, multigraphs (`ny`, `kp`) kept whole and special characters preserved. |
+| `ipa` | `hɔ bɔbea oɲankʰopʰɔn` | Phonetic symbols — for phoneme-level ASR work, not for speech generation. |
 | `none` | `hɔ bɔbea Onyankopɔn` | Send the raw text. Works for any language, G2P table or not. |
 
-`universal` is clean for some languages and damaging for others, so run it on a sentence before
-committing to it:
+**Whichever you pick, look at the output before a full run.** Neither transform is right for every
+language:
 
 ```
-twi  Na hɔ bɔbea            ->  na ho bobea              clean
-yor  Ní ìbẹ̀rẹ̀, nígbà        ->  ngi˥ i˩bɛ˩rɛ˩, ngi˥gbä˩   tone marks become symbols
-afr  en die aarde gemaak    ->  eng die aarde khemaak    wrong
+           universal                    grapheme
+twi        na ho bobea            ✓     na hɔ bɔbea           ɔ/ɛ may be mispronounced
+yor        ngi˥ i˩bɛ˩rɛ˩          ✗     ní ìbẹ̀rẹ̀              ✓
+afr        eng die aarde khemaak  ✗     en die aarde gemaak   ✓
 ```
+
+Universal is what the Ghana Twi dataset was built with and is the default, but it rewrites more
+than it should in some languages. `--dry-run` prints the selection without spending any API
+calls; `africa-speech-synth card config.yaml` shows the transform that will be recorded:
 
 ```bash
-africa-speech-synth run --lang yor --source corpus:yor --normalise universal --dry-run
+africa-speech-synth run --lang yor --source corpus:yor --normalise grapheme --dry-run
 ```
 
 **4 · Synthesise.** Google Gemini TTS speaks the normalised transcript, in any of its
@@ -255,7 +260,7 @@ print(selection.coverage, len(selection.sentences))
 language: Twi                 # name, ISO 639-1/2/3 code, or alternative name
 sources:                      # corpus: | hf: | file:
   - corpus:twi
-normalise: grapheme           # grapheme | universal | ipa | none
+normalise: universal          # universal | grapheme | ipa | none
 out: out/twi
 
 select:

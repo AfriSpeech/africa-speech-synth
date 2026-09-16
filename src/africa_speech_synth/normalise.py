@@ -22,7 +22,18 @@ from typing import List, Optional
 
 from .lang import Language, require_g2p
 
-MODES = ("grapheme", "universal", "ipa", "none")
+MODES = ("universal", "grapheme", "ipa", "none")
+
+# Printed once when a mode other than the default is chosen, so the trade-off is
+# visible at the point it is made rather than only in the README.
+MODE_WARNINGS = {
+    "grapheme": ("grapheme keeps this language's own characters (ɔ, ɛ, ŋ, stacked tone "
+                 "diacritics). TTS voices often mispronounce or skip those — compare a "
+                 "sample against the universal default before a full run."),
+    "ipa": ("ipa sends phonetic symbols. Most TTS models were never trained to read them; "
+            "use this for phoneme-level ASR work, not for speech generation."),
+    "none": "none sends the raw text, including any punctuation and markup the source had.",
+}
 
 
 class Normaliser:

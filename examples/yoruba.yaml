@@ -9,6 +9,9 @@ language: Yoruba
 sources:
   - corpus:yor
 
+# Yoruba is a good reason to check the default before a full run: universal
+# rewrites "Ní ìbẹ̀rẹ̀" as "ngi˥ i˩bɛ˩rɛ˩", so this example keeps the language's
+# own orthography. Compare them yourself with --normalise universal --dry-run.
 normalise: grapheme
 out: out/yor
 
