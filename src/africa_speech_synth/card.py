@@ -187,6 +187,19 @@ def _selection_detail(select_config, selection) -> str:
 def _normalisation_detail(language: Language, mode: str) -> str:
     if mode == "none":
         return "None — the raw source text was sent to the TTS model unchanged."
+    if mode == "universal":
+        return (
+            "Each sentence was rewritten in **universal graphemes** with "
+            "[`africa-g2p`](https://github.com/AfriSpeech/africa-g2p):\n\n"
+            "```python\n"
+            "from africa_g2p import GraphemeConverter, UNIVERSAL\n"
+            f"GraphemeConverter({language.g2p_code!r}, UNIVERSAL).convert(text)\n"
+            "```\n\n"
+            "Universal graphemes write every phoneme with the letter most African languages "
+            "use for it — `ɔ` becomes `o`, `ɛ` becomes `e` — so the same sound is spelled the "
+            "same way across languages, in plain letters rather than IPA symbols. The result "
+            "is stored as `normalised_text` and is the transcript the TTS model was given."
+        )
     if mode == "ipa":
         return (
             "Each sentence was converted to **IPA** with "

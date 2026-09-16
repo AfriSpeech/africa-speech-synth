@@ -293,3 +293,18 @@ def test_env_file_does_not_override_real_environment(tmp_path, monkeypatch):
     load()
     assert os.environ["GEMINI_API_KEY"] == "already-exported"
     assert os.environ["OTHER"] == "x"
+
+
+def test_universal_mode_uses_the_shared_letter_set():
+    """Twi ɔ/ɛ collapse to o/e; grapheme mode keeps them."""
+    grapheme = Normaliser(resolve("twi"), "grapheme")("Na hɔ bɔbea ɛyɛ")
+    universal = Normaliser(resolve("twi"), "universal")("Na hɔ bɔbea ɛyɛ")
+    assert "ɔ" in grapheme and "ɔ" not in universal
+    assert "ho" in universal and "bobea" in universal
+
+
+def test_universal_coverage_units_stay_language_units():
+    """Universal respells sounds, so cover still counts the language's own units."""
+    normaliser = Normaliser(resolve("twi"), "universal")
+    assert normaliser.enabled
+    assert normaliser.units("Akwaaba")[:3] == ["a", "kw", "a"]

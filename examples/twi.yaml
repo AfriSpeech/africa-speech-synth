@@ -14,8 +14,9 @@ sources:
   # Real code-switching transcripts, so the dataset is not purely written Twi.
   - hf:ghanaopenai/Ghana_English-Twi_Code-switching_Speech#transcript
 
-# Native-orthography phoneme units, not IPA: better for a single-language TTS.
-normalise: grapheme
+# Universal graphemes — the shared cross-language letter set (ɔ -> o, ɛ -> e).
+# This is what the published dataset was built with.
+normalise: universal
 
 out: out/twi
 

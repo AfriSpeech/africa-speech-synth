@@ -220,7 +220,7 @@ def build_parser() -> argparse.ArgumentParser:
                          help="Text source URI; repeatable (corpus:twi, hf:org/ds#col, file:x.txt)")
         sub.add_argument("--out", help="Output directory")
         sub.add_argument("--work", help="Work directory (default: <out>/work)")
-        sub.add_argument("--normalise", choices=["grapheme", "ipa", "none"])
+        sub.add_argument("--normalise", choices=["grapheme", "universal", "ipa", "none"])
         sub.add_argument("--cover", choices=["phoneme", "word", "none"])
         sub.add_argument("--min-freq", type=int)
         sub.add_argument("--max-sentences", type=int)
