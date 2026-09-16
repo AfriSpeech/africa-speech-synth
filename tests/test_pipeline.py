@@ -226,3 +226,58 @@ def test_coverage_status_labels():
     assert Entry("x", "X", has_g2p=True, has_text=True).status == "ready"
     assert Entry("x", "X", has_g2p=True).status == "bring text"
     assert Entry("x", "X", has_text=True).status == "no g2p"
+
+
+# --------------------------------------------------------------- samples gallery
+
+def _sample(code, name, voice, region="West Africa"):
+    from africa_speech_synth.samples import Sample
+    return Sample(code=code, name=name, family="Atlantic-Congo", region=region,
+                  voice=voice, text="Akwaaba mo nyinaa wo ha",
+                  normalised_text="akwaaba mo nyinaa wo ha", audio=f"audio/{code}.mp3")
+
+
+def test_sample_sentence_pick_respects_length_window():
+    from africa_speech_synth.samples import SAMPLE_MAX_CHARS, SAMPLE_MIN_CHARS, _pick_sentence
+
+    short, good, long = "too short", "x" * (SAMPLE_MIN_CHARS + 5), "y" * (SAMPLE_MAX_CHARS + 50)
+    assert _pick_sentence([short, long, good]) == good
+    assert _pick_sentence([short, long]) is None
+
+
+def test_gallery_page_renders_every_sample():
+    from africa_speech_synth import space
+
+    samples = [_sample("twi", "Twi", "Zephyr"),
+               _sample("yor", "Yoruba", "Puck"),
+               _sample("swh", "Swahili", "Kore", region="East Africa")]
+    page = space.render(samples)
+
+    assert page.count('<article class="card"') == 3
+    for sample in samples:
+        assert f'src="{sample.audio}"' in page
+        assert sample.voice in page
+    # provenance the page must not quietly drop
+    assert "Gemini TTS" in page and "machine-generated" in page
+    assert "Bible translations" in page
+    assert "africa-g2p" in page
+
+
+def test_gallery_escapes_text():
+    from africa_speech_synth import space
+
+    sample = _sample("twi", "Twi & <b>friends</b>", "Zephyr")
+    sample.text = '<script>alert("x")</script>'
+    page = space.render([sample])
+    assert "<script>alert" not in page
+    assert "&lt;script&gt;" in page
+
+
+def test_gallery_build_writes_space_files(tmp_path):
+    from africa_speech_synth import space
+
+    space.build([_sample("twi", "Twi", "Zephyr")], str(tmp_path))
+    readme = (tmp_path / "README.md").read_text(encoding="utf-8")
+    assert readme.startswith("---") and "sdk: static" in readme
+    assert (tmp_path / "index.html").exists()
+    assert json.loads((tmp_path / "samples.json").read_text(encoding="utf-8"))[0]["code"] == "twi"

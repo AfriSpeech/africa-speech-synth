@@ -169,6 +169,20 @@ africa-speech-synth run \
   --repo AfriSpeech/twi-synthetic-speech
 ```
 
+### Samples gallery
+
+One clip per language, each in a different voice, published as a static HuggingFace Space.
+The page is built from this repo — it has no repo of its own:
+
+```bash
+africa-speech-synth samples --limit 20          # generate clips into space/
+africa-speech-synth space                       # build space/index.html, preview locally
+africa-speech-synth space --repo org/my-samples # publish it
+```
+
+`samples` covers every ready language by default and spreads the 30 voices evenly across them,
+so the gallery is also the voice catalogue. Clips are compressed to MP3 if `ffmpeg` is on PATH.
+
 ### One stage at a time
 
 ```bash

@@ -10,6 +10,8 @@ work/
 out/
 corpora/
 data/
+space/
 *.wav
+*.mp3
 *.parquet
 .pytest_cache/

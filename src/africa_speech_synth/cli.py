@@ -148,6 +148,35 @@ def cmd_langs(args) -> int:
     return 0
 
 
+def cmd_samples(args) -> int:
+    from . import samples as samples_module
+
+    config = _config_from_args(args)
+    codes = [c.strip() for c in args.langs.split(",") if c.strip()] if args.langs else None
+    built = samples_module.build(config, args.dir, codes=codes, limit=args.limit,
+                                 resume=not args.no_resume)
+    print(f"\n{len(built)} samples in {args.dir}. Next: africa-speech-synth space "
+          f"--dir {args.dir} --repo org/name")
+    return 0
+
+
+def cmd_space(args) -> int:
+    from . import samples as samples_module
+    from . import space as space_module
+
+    built = samples_module.load_manifest(args.dir)
+    if not built:
+        print(f"No samples.json in {args.dir}. Run `samples` first.", file=sys.stderr)
+        return 1
+    space_module.build(built, args.dir, title=args.title)
+    if args.repo:
+        space_module.push(args.dir, args.repo, private=args.private)
+    else:
+        print(f"\nOpen {os.path.join(args.dir, 'index.html')} to preview, then re-run "
+              f"with --repo org/name to publish.")
+    return 0
+
+
 def cmd_voices(args) -> int:
     from .voices import GEMINI_VOICES
 
@@ -242,6 +271,23 @@ def build_parser() -> argparse.ArgumentParser:
 
     voices_parser = subparsers.add_parser("voices", help="List the TTS voices you can choose")
     voices_parser.set_defaults(func=cmd_voices)
+
+    samples_parser = add_common(
+        subparsers.add_parser("samples", help="Generate one sample clip per language"))
+    samples_parser.add_argument("--dir", default="space",
+                                help="Where samples and the gallery are built (default: space/)")
+    samples_parser.add_argument("--langs", help="Comma-separated codes (default: every ready language)")
+    samples_parser.add_argument("--limit", type=int, help="Stop after this many languages")
+    samples_parser.add_argument("--no-resume", action="store_true")
+    samples_parser.set_defaults(func=cmd_samples)
+
+    space_parser = subparsers.add_parser(
+        "space", help="Build the samples gallery page, and optionally push it as a HF Space")
+    space_parser.add_argument("--dir", default="space", help="Directory holding samples.json")
+    space_parser.add_argument("--repo", help="HuggingFace Space to push to, e.g. AfriSpeech/samples")
+    space_parser.add_argument("--title", default="African Speech Samples")
+    space_parser.add_argument("--private", action="store_true")
+    space_parser.set_defaults(func=cmd_space)
 
     return parser
 
