@@ -24,15 +24,20 @@ from .lang import Language, require_g2p
 
 MODES = ("universal", "grapheme", "ipa", "none")
 
-# Punctuation a speech model uses for phrasing. Everything else is stripped before
-# synthesis: source corpora carry apostrophes, asterisks marking proper nouns,
-# hyphens, colons and quotes, and a synthesiser reads each of them as a pause or
-# spells them out. Anyin "Ɛ 'nwun ... *Abalahamʋn" was being spoken with breaks
-# that are not in the language.
+# Punctuation a speech model uses for phrasing: sentence enders, comma, semicolon
+# and double quotes (which mark reported speech, and scripture text is full of it).
 #
-# Marks are removed rather than replaced by a space, so a word is never split in
-# two; a stripped mark between letters leaves the letters adjacent.
-KEPT_PUNCTUATION = ".?!,"
+# Single quotes are deliberately NOT here. They are the same character as the
+# apostrophe, and the apostrophe is the mark this strip exists for: Anyin writes
+# "Ɛ 'nwun ... ɔ'a", ejectives used to be written "uk'uba", and a synthesiser reads
+# each one as a break that is not in the language. Keeping ' or ’ as a quote mark
+# would let all of that back in, so quoted speech loses its marks in the few places
+# a corpus uses single quotes for it.
+#
+# Everything else goes: asterisks marking proper nouns, hyphens, colons, brackets,
+# dashes. Marks are removed rather than replaced by a space, so a word is never
+# split in two — "anan-mɔ" becomes "ananmo", not two words.
+KEPT_PUNCTUATION = ".?!,;\"\u201c\u201d"
 
 # Printed once when a mode other than the default is chosen, so the trade-off is
 # visible at the point it is made rather than only in the README.
@@ -58,10 +63,15 @@ def strip_punctuation(text: str, keep: str = KEPT_PUNCTUATION) -> str:
     for char in text:
         if char in keep or not unicodedata.category(char)[0] in ("P", "S"):
             out.append(char)
-    # Stripping can leave doubled spaces or a space before a comma.
+    # Stripping can leave doubled spaces, or a space before a mark that closes a
+    # clause. Only those close up: pulling the space before an opening quote gives
+    # 'He said"come here"'.
     cleaned = " ".join("".join(out).split())
-    for mark in keep:
-        cleaned = cleaned.replace(f" {mark}", mark)
+    # A straight " is both an opening and a closing quote, so it is left alone;
+    # only unambiguous closers pull back.
+    for mark in ".?!,;\u201d":
+        if mark in keep:
+            cleaned = cleaned.replace(f" {mark}", mark)
     return cleaned
 
 
