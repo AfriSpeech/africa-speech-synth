@@ -79,7 +79,8 @@ def _pick_sentence(sentences: Sequence[str]) -> Optional[str]:
 
 def plan(codes: Optional[Sequence[str]] = None,
          voice_list: Optional[Sequence[str]] = None,
-         limit: Optional[int] = None) -> List[Sample]:
+         limit: Optional[int] = None,
+         normalise: str = "grapheme") -> List[Sample]:
     """Choose a sentence and a voice for each language, without calling any API."""
     catalogue = coverage.load()
     entries = ([catalogue.entries[c] for c in codes if c in catalogue.entries]
@@ -103,8 +104,12 @@ def plan(codes: Optional[Sequence[str]] = None,
 
         language = resolve(entry.code)
         try:
-            normalised = Normaliser(language, "grapheme")(sentence)
-        except Exception:
+            normalised = Normaliser(language, normalise)(sentence)
+        except Exception as exc:
+            # A language without a table for this mode still gets a sample; the
+            # model is simply given its own orthography.
+            print(f"  [{position}/{len(entries)}] {entry.code}: {normalise} unavailable "
+                  f"({type(exc).__name__}), sending original text", flush=True)
             normalised = sentence
         samples.append(Sample(
             code=entry.code, name=entry.name, family=entry.family, region=entry.region,
@@ -129,8 +134,10 @@ def _utterances(samples: Sequence[Sample]) -> List[Utterance]:
 def build(config, out_dir: str, codes: Optional[Sequence[str]] = None,
           limit: Optional[int] = None, resume: bool = True) -> List[Sample]:
     """Plan, synthesise and collect samples into `out_dir/audio`."""
-    print(f"Planning samples ({'all ready languages' if not codes else len(codes)})", flush=True)
-    samples = plan(codes, config.tts.voices if codes else None, limit=limit)
+    print(f"Planning samples ({'all ready languages' if not codes else len(codes)}, "
+          f"normalise={config.normalise})", flush=True)
+    samples = plan(codes, config.tts.voices if codes else None, limit=limit,
+                   normalise=config.normalise)
     print(f"  {len(samples)} languages with a usable sentence", flush=True)
     if not samples:
         return []
