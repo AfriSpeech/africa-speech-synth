@@ -30,11 +30,18 @@ class GeminiTTS(TTSBackend):
             ) from exc
         self._types = types
 
+        from ..env import load as load_env
+
         api_key = os.environ.get(config.api_key_env)
         if not api_key:
+            load_env()
+            api_key = os.environ.get(config.api_key_env)
+        if not api_key:
             raise TTSError(
-                f"No API key in ${config.api_key_env}. Export it (or put it in a .env "
-                f"file) — keys must never be committed to a config file."
+                f"No API key found. Either:\n"
+                f"    export {config.api_key_env}=...\n"
+                f"or put `{config.api_key_env}=...` in a .env file in this directory.\n"
+                f"Keys must never go in a config file — those get committed."
             )
         self._client = genai.Client(api_key=api_key)
 

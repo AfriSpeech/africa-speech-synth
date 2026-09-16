@@ -281,3 +281,15 @@ def test_gallery_build_writes_space_files(tmp_path):
     assert readme.startswith("---") and "sdk: static" in readme
     assert (tmp_path / "index.html").exists()
     assert json.loads((tmp_path / "samples.json").read_text(encoding="utf-8"))[0]["code"] == "twi"
+
+
+def test_env_file_does_not_override_real_environment(tmp_path, monkeypatch):
+    from africa_speech_synth.env import load
+
+    (tmp_path / ".env").write_text('export GEMINI_API_KEY="from-file"\nOTHER=x\n',
+                                   encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("GEMINI_API_KEY", "already-exported")
+    load()
+    assert os.environ["GEMINI_API_KEY"] == "already-exported"
+    assert os.environ["OTHER"] == "x"
