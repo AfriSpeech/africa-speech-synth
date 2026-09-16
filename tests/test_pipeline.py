@@ -191,3 +191,38 @@ def test_macrolanguage_falls_back_to_a_member():
     language = resolve("Akan")
     assert language.g2p_code == "twi"
     assert language.name == "Twi"
+
+
+# --------------------------------------------------------------- coverage & voices
+
+def test_voice_spread_is_even_and_uses_every_voice():
+    from africa_speech_synth import voices
+
+    assignment = voices.spread([f"l{i:03d}" for i in range(215)])
+    counts = voices.distribution(assignment)
+    assert len(counts) == len(voices.ALL) == 30
+    assert max(counts.values()) - min(counts.values()) <= 1
+
+
+def test_unknown_voice_is_caught():
+    from africa_speech_synth import voices
+    assert voices.unknown(["Zephyr", "Nope"]) == ["Nope"]
+
+
+def test_coverage_reports_three_tiers():
+    from africa_speech_synth import coverage
+
+    catalogue = coverage.load()
+    counts = catalogue.counts()
+    assert counts["g2p"] == 400
+    assert counts["ready"] <= counts["g2p"]
+    twi = catalogue.entries["twi"]
+    assert twi.has_g2p and twi.status in {"ready", "bring text"}
+
+
+def test_coverage_status_labels():
+    from africa_speech_synth.coverage import Entry
+
+    assert Entry("x", "X", has_g2p=True, has_text=True).status == "ready"
+    assert Entry("x", "X", has_g2p=True).status == "bring text"
+    assert Entry("x", "X", has_text=True).status == "no g2p"

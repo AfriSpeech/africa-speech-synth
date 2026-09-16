@@ -117,19 +117,46 @@ def cmd_card(args) -> int:
     return 0
 
 
-def cmd_langs(args) -> int:
-    from africa_g2p import registry
+STATUS_HELP = {
+    "ready": "text + G2P available — just name the language",
+    "bring text": "G2P available; supply text with a file: or hf: source",
+    "no g2p": "text available; run with --normalise none",
+}
 
-    entries = sorted(registry().values(), key=lambda e: e.get("name", e["code"]))
-    if args.search:
-        needle = args.search.lower()
-        entries = [e for e in entries
-                   if needle in e["code"].lower()
-                   or needle in str(e.get("name", "")).lower()
-                   or any(needle in str(a).lower() for a in e.get("alt_names") or [])]
+
+def cmd_langs(args) -> int:
+    from . import coverage
+
+    catalogue = coverage.load()
+    entries = catalogue.search(args.search) if args.search else catalogue.sorted()
+    if args.ready:
+        entries = [e for e in entries if e.ready]
+
     for entry in entries:
-        print(f"{entry['code']:<6} {entry.get('name', ''):<32} {entry.get('family', '')}")
-    print(f"\n{len(entries)} languages with an africa-g2p table.", file=sys.stderr)
+        print(f"{entry.code:<6} {entry.name[:34]:<35} {entry.status:<11} {entry.family}")
+
+    counts = catalogue.counts()
+    print(f"\n{len(entries)} shown.", file=sys.stderr)
+    print(f"  {counts['ready']:>4} ready       {STATUS_HELP['ready']}", file=sys.stderr)
+    print(f"  {counts['g2p'] - counts['ready']:>4} bring text  {STATUS_HELP['bring text']}",
+          file=sys.stderr)
+    print(f"  {counts['text'] - counts['ready']:>4} no g2p      {STATUS_HELP['no g2p']}",
+          file=sys.stderr)
+    if not counts["text"]:
+        print("\n  (africa-corpus-builder not found, so no language shows as ready — "
+              "see the README to install it.)", file=sys.stderr)
+    return 0
+
+
+def cmd_voices(args) -> int:
+    from .voices import GEMINI_VOICES
+
+    print("Gemini TTS voices — set any of these in `tts.voices`, "
+          "or several to rotate speakers:\n")
+    for name, character in GEMINI_VOICES.items():
+        print(f"  {name:<16} {character}")
+    print(f"\n{len(GEMINI_VOICES)} voices. Example:  --voices Zephyr,Kore,Sulafat",
+          file=sys.stderr)
     return 0
 
 
@@ -206,9 +233,15 @@ def build_parser() -> argparse.ArgumentParser:
     init_parser.add_argument("--out", help="Output directory to record in the config")
     init_parser.set_defaults(func=cmd_init)
 
-    langs_parser = subparsers.add_parser("langs", help="List languages africa-g2p supports")
-    langs_parser.add_argument("--search", help="Filter by code, name or alternative name")
+    langs_parser = subparsers.add_parser(
+        "langs", help="List languages and what each one needs to run")
+    langs_parser.add_argument("--search", help="Filter by code or name")
+    langs_parser.add_argument("--ready", action="store_true",
+                              help="Only languages that run with no text of your own")
     langs_parser.set_defaults(func=cmd_langs)
+
+    voices_parser = subparsers.add_parser("voices", help="List the TTS voices you can choose")
+    voices_parser.set_defaults(func=cmd_voices)
 
     return parser
 

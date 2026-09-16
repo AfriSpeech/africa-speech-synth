@@ -28,10 +28,17 @@ class Utterance:
     index: int
     text: str
     transcript: str        # what the model is actually asked to speak
+    # Per-utterance overrides. A single-language run leaves all three unset and
+    # takes the run's voice rotation and language; the samples gallery sets them
+    # so one pass can cover many languages, each with its own voice and its own
+    # accent context, without a second copy of the retry/rate-limit machinery.
+    voice: Optional[str] = None
+    language: Optional[Language] = None
+    name: Optional[str] = None
 
     @property
     def stem(self) -> str:
-        return f"utt_{self.index:06d}"
+        return self.name or f"utt_{self.index:06d}"
 
 
 class RateLimiter:
@@ -126,8 +133,8 @@ async def _one(utterance: Utterance, backend, workspace: Workspace, limiter: Rat
                semaphore: asyncio.Semaphore, config, language: Language,
                counters: dict) -> bool:
     async with semaphore:
-        voice = config.voices[utterance.index % len(config.voices)]
-        prompt = render_prompt(config, language, utterance.transcript)
+        voice = utterance.voice or config.voices[utterance.index % len(config.voices)]
+        prompt = render_prompt(config, utterance.language or language, utterance.transcript)
 
         for attempt in range(1, config.max_retries + 1):
             await limiter.acquire()
@@ -153,6 +160,8 @@ async def _one(utterance: Utterance, backend, workspace: Workspace, limiter: Rat
                 handle.write(clip.audio)
             workspace.write(utterance, {
                 "index": utterance.index,
+                "name": utterance.stem,
+                "language": (utterance.language or language).code,
                 "text": utterance.text,
                 "transcript": utterance.transcript,
                 "voice": clip.voice,
