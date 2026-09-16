@@ -329,7 +329,9 @@ def test_only_phrasing_punctuation_survives():
     assert strip_punctuation("a 'b' c") == "a b c"
     assert strip_punctuation("anan-mo") == "ananmo"      # joins, never splits a word
     assert strip_punctuation("*Abalahamun") == "Abalahamun"
-    assert strip_punctuation("“curly” — dash; colon:") == "curly dash colon"
+    assert strip_punctuation("“curly” — dash; colon:") == "“curly” dash; colon"
+    assert strip_punctuation('He said "come here"; then left.') == 'He said "come here"; then left.'
+    assert strip_punctuation("She said “yes” , then left .") == "She said “yes”, then left."
 
 
 def test_stripping_leaves_no_stray_spaces():
