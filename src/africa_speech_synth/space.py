@@ -182,6 +182,10 @@ def render(samples: Sequence[Sample], title: str = "African Speech Samples") -> 
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- A Space is served inside an iframe on huggingface.co, so a link with no target
+     tries to open in that frame and is blocked by its sandbox — every link on the
+     page looked broken. One base rule sends them all to a new tab. -->
+<base target="_blank">
 <title>{html.escape(title)}</title>
 <style>{STYLE}</style>
 </head>
