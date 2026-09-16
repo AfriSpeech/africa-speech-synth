@@ -15,6 +15,9 @@ export GEMINI_API_KEY=...
 africa-speech-synth run examples/twi.yaml
 ```
 
+**[Hear what it produces](https://huggingface.co/spaces/AfriSpeech/africa-speech-synth-samples)** —
+one sample per language, 215 languages, a different voice each.
+
 It sits on the rest of the AfriSpeech stack:
 
 | Library | What it does here |
@@ -171,8 +174,9 @@ africa-speech-synth run \
 
 ### Samples gallery
 
-One clip per language, each in a different voice, published as a static HuggingFace Space.
-The page is built from this repo — it has no repo of its own:
+**[Hear it: AfriSpeech/africa-speech-synth-samples](https://huggingface.co/spaces/AfriSpeech/africa-speech-synth-samples)**
+— one clip per language, each in a different voice. The page is built from this repo, so it
+has no repo of its own:
 
 ```bash
 africa-speech-synth samples --limit 20          # generate clips into space/
