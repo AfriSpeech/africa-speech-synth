@@ -5,12 +5,12 @@ build-backend = "hatchling.build"
 [project]
 name = "afrispeech-synth"
 version = "0.1.0"
-description = "Generate synthetic speech datasets for African languages: source text, phoneme-coverage selection, africa-g2p normalisation, TTS synthesis, and a ready-to-train HuggingFace dataset."
+description = "Build synthetic speech datasets for African languages with Google Gemini TTS: corpus text, phoneme-coverage sentence selection, africa-g2p orthography normalisation, and a training-ready HuggingFace dataset."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
 authors = [{ name = "AfriSpeech" }]
-keywords = ["tts", "speech-synthesis", "african-languages", "dataset", "asr", "g2p"]
+keywords = ["tts", "gemini", "speech-synthesis", "african-languages", "dataset", "asr", "g2p"]
 
 dependencies = [
     # 0.2.1 keeps the universal orthography to plain letters; earlier versions
