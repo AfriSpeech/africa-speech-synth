@@ -105,12 +105,14 @@ on Twi it cut a 4,141-sentence pool to 115 at full phoneme coverage.
   covered 208/208 phoneme units (100.0%) with 115 sentences
 ```
 
-**3 · Normalise.** `africa-g2p` rewrites each sentence. Stored as `normalised_text` — it's what
-the TTS model is actually asked to speak.
+**3 · Normalise.** `africa-g2p` rewrites each sentence, then punctuation is reduced to `.` `?`
+`!` `,` — the marks a voice uses for phrasing. Everything else (apostrophes, asterisks marking
+proper nouns, hyphens, colons, quotes) is read as a pause or spelled out, so it goes. Stored as
+`normalised_text` — it's what the TTS model is actually asked to speak.
 
 | `--normalise` | Twi example | When |
 |---|---|---|
-| `universal` *(default)* | `ho bobea onyankopon` | Every phoneme written with the letter most African languages use for it (`ɔ`→`o`, `ɛ`→`e`). Plain `a-z` only — needs africa-g2p ≥ 0.2.1. |
+| `universal` *(default)* | `ho bobea onyankopon` | Every phoneme written with the letter most African languages use for it (`ɔ`→`o`, `ɛ`→`e`). Plain `a-z` only — needs africa-g2p ≥ 0.2.2. |
 | `grapheme` | `hɔ bɔbea onyankopɔn` | The language's own phoneme units, multigraphs (`ny`, `kp`) kept whole and special characters preserved. |
 | `ipa` | `hɔ bɔbea oɲankʰopʰɔn` | Phonetic symbols — for phoneme-level ASR work, not for speech generation. |
 | `none` | `hɔ bɔbea Onyankopɔn` | Send the raw text. Works for any language, G2P table or not. |

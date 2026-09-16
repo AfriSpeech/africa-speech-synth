@@ -318,3 +318,35 @@ def test_universal_is_the_default_mode():
 def test_every_non_default_mode_carries_a_warning():
     from africa_speech_synth.normalise import MODES, MODE_WARNINGS
     assert set(MODE_WARNINGS) == set(MODES) - {"universal"}
+
+
+# --------------------------------------------------------------- punctuation
+
+def test_only_phrasing_punctuation_survives():
+    from africa_speech_synth.normalise import strip_punctuation
+
+    assert strip_punctuation("Hello, world! Is it ok? Yes.") == "Hello, world! Is it ok? Yes."
+    assert strip_punctuation("a 'b' c") == "a b c"
+    assert strip_punctuation("anan-mo") == "ananmo"      # joins, never splits a word
+    assert strip_punctuation("*Abalahamun") == "Abalahamun"
+    assert strip_punctuation("“curly” — dash; colon:") == "curly dash colon"
+
+
+def test_stripping_leaves_no_stray_spaces():
+    from africa_speech_synth.normalise import strip_punctuation
+    assert strip_punctuation("word ' , next") == "word, next"
+
+
+def test_normaliser_strips_source_punctuation():
+    """Anyin writes apostrophes; a synthesiser reads them as pauses."""
+    source = "Ɛ 'nwun Zozi, anan-mɔ dunman'n."
+    out = Normaliser(resolve("any"), "universal")(source)
+    assert "'" not in out and "-" not in out
+    assert out.endswith(".") and "," in out
+
+
+def test_ipa_modifier_letters_are_not_punctuation():
+    """ʼ and ǁ are letters in Unicode, and IPA output depends on them."""
+    out = Normaliser(resolve("xho"), "ipa")("ukuba xa")
+    assert "ʼ" in out      # ejective mark
+    assert "ǁ" in out      # lateral click
