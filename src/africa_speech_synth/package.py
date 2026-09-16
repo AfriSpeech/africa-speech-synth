@@ -31,21 +31,47 @@ def _shard_by_size(records: List[dict], target_bytes: int) -> List[List[dict]]:
     return shards
 
 
+# What the Hub reads to know a column holds audio. `datasets` writes exactly this
+# key into the Arrow schema; the viewer and `load_dataset` both pick it up.
+def _hf_features_metadata(sample_rate: int) -> dict:
+    features = {
+        "audio": {"sampling_rate": sample_rate, "_type": "Audio"},
+        "text": {"dtype": "string", "_type": "Value"},
+        "normalised_text": {"dtype": "string", "_type": "Value"},
+        "voice": {"dtype": "string", "_type": "Value"},
+    }
+    return {b"huggingface": json.dumps({"info": {"features": features}}).encode("utf-8")}
+
+
 def to_parquet(records: List[dict], out_dir: str, sample_rate: int = 24000,
                shard_target_mb: int = 190) -> List[str]:
-    from datasets import Audio, Dataset, Features, Value
+    """Write shards with pyarrow rather than through `datasets`.
+
+    The audio is already WAV bytes, so nothing needs encoding — but
+    `Audio.encode_example` imports a codec unconditionally before it looks at what
+    it was handed, and which codec that is has changed across releases (soundfile
+    on datasets 2.x, torchcodec on 5.x). Writing the struct directly produces a
+    byte-identical file, and the only dependency is pyarrow, which parquet needs
+    anyway.
+    """
+    import pyarrow as pa
+    import pyarrow.parquet as pq
 
     data_dir = os.path.join(out_dir, "data")
     if os.path.exists(data_dir):
         shutil.rmtree(data_dir)
     os.makedirs(data_dir, exist_ok=True)
 
-    features = Features({
-        "audio": Audio(sampling_rate=sample_rate),
-        "text": Value("string"),
-        "normalised_text": Value("string"),
-        "voice": Value("string"),
-    })
+    schema = pa.schema(
+        [
+            pa.field("audio", pa.struct([pa.field("bytes", pa.binary()),
+                                         pa.field("path", pa.string())])),
+            pa.field("text", pa.string()),
+            pa.field("normalised_text", pa.string()),
+            pa.field("voice", pa.string()),
+        ],
+        metadata=_hf_features_metadata(sample_rate),
+    )
 
     shards = _shard_by_size(records, shard_target_mb * 1024 * 1024)
     print(f"  {len(records)} clips -> {len(shards)} shard(s)", flush=True)
@@ -62,16 +88,16 @@ def to_parquet(records: List[dict], out_dir: str, sample_rate: int = 24000,
             voices.append(record.get("voice", ""))
             record["shard"] = f"data/{name}"
             record["file_name"] = os.path.basename(record["audio_path"])
-        dataset = Dataset.from_dict(
+        table = pa.Table.from_pydict(
             {"audio": audio, "text": text, "normalised_text": normalised, "voice": voices},
-            features=features,
+            schema=schema,
         )
         path = os.path.join(data_dir, name)
-        dataset.to_parquet(path)
+        pq.write_table(table, path)
         paths.append(path)
-        print(f"  [{number + 1}/{len(shards)}] {path} rows={len(dataset)} "
+        print(f"  [{number + 1}/{len(shards)}] {path} rows={table.num_rows} "
               f"size={os.path.getsize(path) / 1e6:.1f}MB", flush=True)
-        del dataset, audio, text, normalised, voices
+        del table, audio, text, normalised, voices
     return paths
 
 

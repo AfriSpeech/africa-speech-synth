@@ -143,14 +143,27 @@ def test_end_to_end(tmp_path):
     result = pipeline.run(config)
     assert result["clips"] >= 4
 
-    # parquet shards exist and carry embedded audio
-    from datasets import load_dataset
-    dataset = load_dataset("parquet", data_files=str(tmp_path / "out" / "data" / "*.parquet"),
-                           split="train")
-    assert set(dataset.column_names) == {"audio", "text", "normalised_text", "voice"}
-    assert dataset[0]["audio"]["array"] is not None
-    assert dataset[0]["normalised_text"] != dataset[0]["text"]
-    assert {row["voice"] for row in dataset} == {"A", "B"}
+    # Parquet shards carry embedded audio and the metadata the Hub reads to know
+    # the column is audio. Checked with pyarrow rather than by decoding: decoding
+    # pulls in an audio codec whose identity changes between datasets releases
+    # (soundfile on 2.x, torchcodec on 5.x), and none of it is needed to verify
+    # what we wrote.
+    import json
+
+    import pyarrow.parquet as pq
+
+    shard = sorted((tmp_path / "out" / "data").glob("*.parquet"))[0]
+    table = pq.read_table(shard)
+    assert table.column_names == ["audio", "text", "normalised_text", "voice"]
+
+    features = json.loads(table.schema.metadata[b"huggingface"])["info"]["features"]
+    assert features["audio"] == {"sampling_rate": 24000, "_type": "Audio"}
+
+    rows = table.to_pylist()
+    assert rows[0]["audio"]["bytes"][:4] == b"RIFF"
+    assert rows[0]["audio"]["path"].endswith(".wav")
+    assert rows[0]["normalised_text"] != rows[0]["text"]
+    assert {r["voice"] for r in rows} == {"A", "B"}
 
     # manifest and card
     manifest = (tmp_path / "out" / "metadata.jsonl").read_text(encoding="utf-8").splitlines()

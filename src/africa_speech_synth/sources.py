@@ -76,7 +76,13 @@ def from_corpus(code: str, limit=None, seed: int = 0) -> List[str]:
 # --------------------------------------------------------------------------- huggingface
 
 def from_hf(repo: str, column: str, split=None, limit=None) -> List[str]:
-    from datasets import load_dataset
+    try:
+        from datasets import load_dataset
+    except ImportError as exc:
+        raise SourceError(
+            "The `hf:` source needs the datasets library:\n"
+            "    pip install 'africa-speech-synth[hf]'"
+        ) from exc
 
     splits = [split] if split else ["train", "validation", "test"]
     out: List[str] = []

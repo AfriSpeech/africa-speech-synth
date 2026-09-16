@@ -157,8 +157,9 @@ generated from the run config.
 ## Install
 
 ```bash
-pip install africa-speech-synth          # core
+pip install africa-speech-synth            # core
 pip install "africa-speech-synth[gemini]"  # + the Gemini TTS backend
+pip install "africa-speech-synth[hf]"      # + hf: text sources (pulls datasets)
 ```
 
 `afriso` and `africa-corpus-builder` are not on PyPI yet:

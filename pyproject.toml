@@ -17,13 +17,15 @@ dependencies = [
     # wrote ejectives with apostrophes, which a TTS voice reads as pauses.
     "africa-g2p>=0.2.3",
     "PyYAML>=6.0",
-    "datasets>=2.14",
+    "pyarrow>=12.0",
     "huggingface_hub>=0.20",
 ]
 
 [project.optional-dependencies]
 # The Gemini TTS backend (the reference backend).
 gemini = ["google-genai>=0.3.0"]
+# Only the `hf:` text source needs datasets; parquet is written with pyarrow.
+hf = ["datasets>=2.14"]
 # afriso (language-name resolution) and africa-corpus-builder (source text) are
 # not on PyPI, so they cannot be declared here — PyPI rejects direct URL
 # dependencies, and an extra naming a package that does not exist would fail to
