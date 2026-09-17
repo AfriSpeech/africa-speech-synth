@@ -103,8 +103,14 @@ def load(refresh: bool = False) -> Coverage:
     # been added faster than metadata rows, so reading the registry alone hid
     # every language that had a table but no description of itself.
     meta = registry()
+    blocked = _universal_blocked()
     entries: Dict[str, Entry] = {}
     for code in available_languages():
+        if code in blocked:
+            # africa-g2p ships a table but marks the language as one whose text
+            # cannot be written in universal yet. Counting it ready would put a
+            # language in the gallery that fails the moment a run touches it.
+            continue
         record = meta.get(code) or {}
         regions = record.get("regions") or []
         entries[code] = Entry(
@@ -137,6 +143,15 @@ def load(refresh: bool = False) -> Coverage:
 
     _CACHE = Coverage(entries)
     return _CACHE
+
+
+def _universal_blocked() -> set:
+    """Languages africa-g2p can tabulate but not yet write in universal."""
+    try:
+        from africa_g2p.convert import _blocked
+        return set(_blocked())
+    except Exception:
+        return set()
 
 
 def _universal_available(code: str) -> bool:

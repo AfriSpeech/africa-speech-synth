@@ -18,7 +18,7 @@ afrispeech-synth run examples/twi.yaml
 ```
 
 **[Hear what it produces](https://huggingface.co/spaces/AfriSpeech/afrispeech-synth-samples)** —
-one sample per language, 223 languages, a different voice each.
+one sample per language, 562 languages, a different voice each.
 
 ## What's around Gemini
 
@@ -44,12 +44,12 @@ For **recorded** African speech rather than synthetic, use
 
 | | Languages | What you need to do |
 |---|--:|---|
-| **Ready** | **223** | Nothing. Name the language and run. |
+| **Ready** | **562** | Nothing. Name the language and run. |
 | **Bring your own text** | 185 | Point a `file:` or `hf:` source at your own sentences. |
-| **No G2P table** | 470 | Text is available; run with `--normalise none`. |
+| **No G2P table** | 131 | Text is available; run with `--normalise none`. |
 
-africa-g2p converts **408** African languages to universal orthography,
-africa-corpus-builder has text for **693**, and **223 are in both** — those need nothing
+africa-g2p converts **747** African languages to universal orthography,
+africa-corpus-builder has text for **693**, and **562 are in both** — those need nothing
 from you but a name:
 
 These counts are measured, not read off a list. africa-g2p exposes two different things —
@@ -57,8 +57,9 @@ These counts are measured, not read off a list. africa-g2p exposes two different
 and they are not the same size, because rule tables get added faster than metadata rows. Asking
 the registry reported every language with a table but no description of itself as unsupported,
 and the same key matching dropped eight more (Akan, Luo, Luwo, Mwan, Ngemba, Kamba, Malgache,
-Tonga) that reach a table through an alias. Readiness now asks whether the language really
-converts, so the number tracks africa-g2p as tables land instead of lagging a release behind.
+Tonga) that reach a table through an alias. africa-g2p also marks some languages as ones it
+cannot yet write in universal; those are excluded rather than counted and left to fail at run
+time. Readiness now asks whether the language really converts, so the number tracks africa-g2p as tables land instead of lagging a release behind.
 
 ```bash
 afrispeech-synth run --lang Zulu --source corpus:zul --out out/zul
@@ -79,7 +80,7 @@ Check where yours stands:
 
 ```bash
 afrispeech-synth langs --search zulu     # zul  Zulu  ready  Atlantic-Congo
-afrispeech-synth langs --ready           # the 223 that need nothing from you
+afrispeech-synth langs --ready           # the 562 that need nothing from you
 ```
 
 Languages are matched by exact code only. Matching by name would add ~73 more, but it pairs
