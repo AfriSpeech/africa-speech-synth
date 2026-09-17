@@ -56,9 +56,6 @@ class TTSConfig:
     concurrency: int = 10
     rpm: int = 200
     max_retries: int = 5
-    # Gemini streams headerless PCM whose rate is in the mime type; this is
-    # only the fallback for a response that does not say. Output rate and
-    # format are `audio:` below — a different thing, applied after synthesis.
     sample_rate: int = 24000
     api_key_env: str = "GEMINI_API_KEY"
 
@@ -72,18 +69,6 @@ class TTSConfig:
     session_turns: int = 25
     # Required by gemini-3.8-live-extended-thinking, ignored by other models.
     thinking_level: Optional[str] = None
-
-
-@dataclass
-class AudioConfig:
-    """What the clips on disk should be, as opposed to what the API returned."""
-    # wav | mp3 | flac | ogg | opus. Anything but wav needs ffmpeg installed.
-    format: str = "wav"
-    # None keeps the backend's native rate (24000 Hz for Gemini). 16000 for ASR
-    # fine-tuning, 22050 for Piper/VITS.
-    sample_rate: Optional[int] = None
-    channels: int = 1
-    bitrate: str = "64k"        # lossy formats only; ignored by wav and flac
 
 
 @dataclass
@@ -107,7 +92,6 @@ class RunConfig:
     work: Optional[str] = None      # defaults to <out>/work
     select: SelectConfig = field(default_factory=SelectConfig)
     tts: TTSConfig = field(default_factory=TTSConfig)
-    audio: AudioConfig = field(default_factory=AudioConfig)
     package: PackageConfig = field(default_factory=PackageConfig)
 
     @property
@@ -118,8 +102,7 @@ class RunConfig:
         return asdict(self)
 
 
-_SECTIONS = {"select": SelectConfig, "tts": TTSConfig, "audio": AudioConfig,
-             "package": PackageConfig}
+_SECTIONS = {"select": SelectConfig, "tts": TTSConfig, "package": PackageConfig}
 
 
 def _build(cls, data: dict):

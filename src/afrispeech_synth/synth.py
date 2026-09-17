@@ -17,10 +17,8 @@ import time
 from dataclasses import dataclass
 from typing import List, Optional, Sequence
 
-from . import audio as audio_module
 from . import tts as tts_registry
 from .lang import Language
-from .config import AudioConfig
 from .normalise import Normaliser
 from .tts.base import RetryableTTSError, TTSError
 
@@ -67,10 +65,8 @@ class RateLimiter:
 class Workspace:
     """On-disk layout of a run. Audio is bucketed so no directory gets huge."""
 
-    def __init__(self, root: str, ext: str = "wav", rate: Optional[int] = None):
+    def __init__(self, root: str):
         self.root = root
-        self.ext = ext
-        self.rate = rate
         self.audio_dir = os.path.join(root, "audio")
         self.meta_dir = os.path.join(root, "meta")
         os.makedirs(self.audio_dir, exist_ok=True)
@@ -82,7 +78,7 @@ class Workspace:
         return path
 
     def audio_path(self, utterance: Utterance) -> str:
-        return os.path.join(self.bucket(utterance.index), f"{utterance.stem}.{self.ext}")
+        return os.path.join(self.bucket(utterance.index), f"{utterance.stem}.wav")
 
     def meta_path(self, utterance: Utterance) -> str:
         return os.path.join(self.meta_dir, f"{utterance.stem}.json")
@@ -97,13 +93,7 @@ class Workspace:
         except (json.JSONDecodeError, OSError):
             return False
         audio = record.get("audio_path")
-        if not (audio and os.path.exists(audio) and os.path.getsize(audio) > 44):
-            return False
-        # A clip written before the format or rate changed is not done — it is
-        # the wrong clip, and silently keeping it would split the dataset.
-        if not audio.endswith("." + self.ext):
-            return False
-        return self.rate is None or record.get("sample_rate") == self.rate
+        return bool(audio) and os.path.exists(audio) and os.path.getsize(audio) > 44
 
     def write(self, utterance: Utterance, record: dict) -> None:
         # Write the sidecar last: audio-then-metadata means a crash between the
@@ -141,7 +131,7 @@ def render_prompt(config, language: Language, transcript: str) -> str:
 
 async def _one(utterance: Utterance, backend, workspace: Workspace, limiter: RateLimiter,
                semaphore: asyncio.Semaphore, config, language: Language,
-               audio_config, counters: dict) -> bool:
+               counters: dict) -> bool:
     async with semaphore:
         voice = utterance.voice or config.voice
         prompt = render_prompt(config, utterance.language or language, utterance.transcript)
@@ -165,19 +155,9 @@ async def _one(utterance: Utterance, backend, workspace: Workspace, limiter: Rat
                 print(f"[{utterance.index}] failed: {exc}", flush=True)
                 return False
 
-            try:
-                data, rate = audio_module.convert(
-                    clip.audio, fmt=audio_config.format,
-                    sample_rate=audio_config.sample_rate,
-                    channels=audio_config.channels, bitrate=audio_config.bitrate)
-            except audio_module.AudioError as exc:
-                counters["failed"] += 1
-                print(f"[{utterance.index}] audio conversion failed: {exc}", flush=True)
-                return False
-
             path = workspace.audio_path(utterance)
             with open(path, "wb") as handle:
-                handle.write(data)
+                handle.write(clip.audio)
             workspace.write(utterance, {
                 "index": utterance.index,
                 "name": utterance.stem,
@@ -186,8 +166,8 @@ async def _one(utterance: Utterance, backend, workspace: Workspace, limiter: Rat
                 "transcript": utterance.transcript,
                 "voice": clip.voice,
                 "audio_path": path,
-                "sample_rate": rate,
-                "bytes": len(data),
+                "sample_rate": clip.sample_rate,
+                "bytes": len(clip.audio),
             })
             counters["done"] += 1
             total = counters["total"]
@@ -201,10 +181,8 @@ async def _one(utterance: Utterance, backend, workspace: Workspace, limiter: Rat
 
 
 async def synthesise_async(utterances: Sequence[Utterance], config, language: Language,
-                           work_dir: str, resume: bool = True, audio_config=None) -> dict:
-    audio_config = audio_config or AudioConfig()
-    audio_module.validate(audio_config.format, audio_config.sample_rate)
-    workspace = Workspace(work_dir, ext=audio_config.format, rate=audio_config.sample_rate)
+                           work_dir: str, resume: bool = True) -> dict:
+    workspace = Workspace(work_dir)
     pending = [u for u in utterances if not (resume and workspace.is_done(u))]
     skipped = len(utterances) - len(pending)
     if skipped:
@@ -215,17 +193,13 @@ async def synthesise_async(utterances: Sequence[Utterance], config, language: La
     backend = tts_registry.get_backend(config.backend, config, language)
     print(f"  backend: {backend.describe()}, voice={config.voice}, "
           f"concurrency={config.concurrency}, rpm={config.rpm}", flush=True)
-    print(f"  audio: {audio_config.format}"
-          f"{f' @ {audio_config.sample_rate} Hz' if audio_config.sample_rate else ' (native rate)'}"
-          f", {audio_config.channels}ch", flush=True)
 
     limiter = RateLimiter(config.rpm)
     semaphore = asyncio.Semaphore(config.concurrency)
     counters = {"done": 0, "failed": 0, "total": len(pending), "started": time.time()}
     try:
         await asyncio.gather(*[
-            _one(u, backend, workspace, limiter, semaphore, config, language,
-                 audio_config, counters)
+            _one(u, backend, workspace, limiter, semaphore, config, language, counters)
             for u in pending
         ])
     finally:
@@ -236,6 +210,5 @@ async def synthesise_async(utterances: Sequence[Utterance], config, language: La
 
 
 def synthesise(utterances: Sequence[Utterance], config, language: Language,
-               work_dir: str, resume: bool = True, audio_config=None) -> dict:
-    return asyncio.run(
-        synthesise_async(utterances, config, language, work_dir, resume, audio_config))
+               work_dir: str, resume: bool = True) -> dict:
+    return asyncio.run(synthesise_async(utterances, config, language, work_dir, resume))

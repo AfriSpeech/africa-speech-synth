@@ -17,19 +17,6 @@ from typing import List, Optional
 from .synth import Workspace
 
 
-def effective_sample_rate(records: List[dict], config) -> int:
-    """The rate the clips on disk actually have.
-
-    Read from the clips rather than from the config: the config says what was
-    asked for, and for a run that predates `audio:` — or one whose backend
-    ignored the request — only the records know what was written.
-    """
-    rates = [r["sample_rate"] for r in records if r.get("sample_rate")]
-    if rates:
-        return max(set(rates), key=rates.count)
-    return config.audio.sample_rate or config.tts.sample_rate
-
-
 def _shard_by_size(records: List[dict], target_bytes: int) -> List[List[dict]]:
     shards, current, size = [], [], 0
     for record in records:
@@ -142,15 +129,11 @@ def to_ljspeech(records: List[dict], out_dir: str) -> str:
     root = os.path.join(out_dir, "ljspeech")
     wavs = os.path.join(root, "wavs")
     os.makedirs(wavs, exist_ok=True)
-    ext = os.path.splitext(records[0]["audio_path"])[1] if records else ".wav"
-    if ext != ".wav":
-        print(f"  note: ljspeech export carries {ext} files — most trainers expect WAV; "
-              f"set audio.format: wav if that matters", flush=True)
     with open(os.path.join(root, "metadata.csv"), "w", newline="", encoding="utf-8") as handle:
         writer = csv.writer(handle, delimiter="|", quoting=csv.QUOTE_NONE, escapechar="\\")
         for record in records:
             stem = os.path.splitext(os.path.basename(record["audio_path"]))[0]
-            shutil.copy2(record["audio_path"], os.path.join(wavs, stem + ext))
+            shutil.copy2(record["audio_path"], os.path.join(wavs, f"{stem}.wav"))
             writer.writerow([stem, record["text"], record.get("transcript", record["text"])])
     print(f"  ljspeech export: {root}", flush=True)
     return root
@@ -164,10 +147,9 @@ def build(work_dir: str, out_dir: str, config, card: Optional[str] = None) -> di
     os.makedirs(out_dir, exist_ok=True)
 
     result = {"clips": len(records), "files": []}
-    result["sample_rate"] = effective_sample_rate(records, config)
     if "parquet" in config.package.formats:
         result["files"] += to_parquet(records, out_dir,
-                                      sample_rate=result["sample_rate"],
+                                      sample_rate=config.tts.sample_rate,
                                       shard_target_mb=config.package.shard_target_mb)
     if "ljspeech" in config.package.formats:
         to_ljspeech(records, out_dir)

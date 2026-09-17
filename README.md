@@ -1,13 +1,14 @@
 # afrispeech-synth
 
-**Turn [Google Gemini TTS](https://ai.google.dev/gemini-api/docs/speech-generation) into a
-speech-dataset factory for any African language — from raw text to a training-ready
-HuggingFace dataset, with one command.**
+**Turn [Google Gemini](https://ai.google.dev/gemini-api/docs) into a speech-dataset factory
+for any African language — from raw text to a training-ready HuggingFace dataset, with one
+command.**
 
-Most African languages have no recorded speech corpus. Gemini TTS can speak many of them
-well enough to bootstrap one, but a usable dataset is not just API calls: you need text in
-the language, the *right* sentences rather than all of them, orthography the model reads
-correctly, and output packaged so a trainer can consume it. This does all four around Gemini.
+Most African languages have no recorded speech corpus. Gemini can speak many of them well
+enough to bootstrap one, but a usable dataset is not just API calls: you need text in the
+language, the *right* sentences rather than all of them, orthography the model reads
+correctly, and output packaged so a trainer can consume it. This does all four around Gemini,
+through either the **TTS** models or the **Live** API's native-audio models.
 
 ```bash
 pip install "afrispeech-synth[gemini]"
@@ -23,7 +24,7 @@ one sample per language, 215 languages, a different voice each.
 
 | | |
 |---|---|
-| **The voice** | **[Google Gemini TTS](https://ai.google.dev/gemini-api/docs/speech-generation)** — `gemini-3.1-flash-tts-preview`, [30 voices](#4--synthesise), a paid Google API you bring your own key to. Every dataset built with this tool so far was spoken by it. |
+| **The voice** | **Google Gemini**, [30 voices](#4--synthesise), your own API key. Two backends: [TTS](https://ai.google.dev/gemini-api/docs/speech-generation) (`gemini`, the reference — every dataset built with this tool so far was spoken by it) and the [Live API](https://ai.google.dev/gemini-api/docs/live) (`gemini-live`, a separate quota, better on several African languages). |
 | **The text** | [africa-corpus-builder](https://github.com/AfriSpeech/africa-corpus-builder) — source text for **693 African languages**, so a language with no corpus of its own still has a starting point |
 | **The orthography** | [africa-g2p](https://github.com/AfriSpeech/africa-g2p) — phoneme tables for **400 languages**. Feeding Gemini a language's raw orthography gets you its guess at `ɔ`, `ɛ` and `ŋ`; feeding it the universal grapheme set gets you the sound |
 | **The names** | [afriso](https://github.com/AfriSpeech/afriso) — resolves `Twi`, `tw`, `aka`, `Asante Twi` to one code all of the above agree on |
@@ -170,20 +171,24 @@ and `gemini-3.1-flash-live-preview` both read every sentence back verbatim;
 `gemini-3.8-live` dropped or truncated audio on three of the five, and
 `gemini-3.8-live-extended-thinking` needs `tts.thinking_level` set.
 
-**Audio on disk.** Both Gemini backends return 24 kHz mono PCM — measured, not assumed:
-the response declares `audio/pcm;rate=24000`, and the signal carries real energy above
-8 kHz with no cliff there, so it is genuinely 24 kHz rather than upsampled from 16 kHz.
-That native rate is kept by default and clips are written as WAV:
+**What the audio is.** Clips are written exactly as the API returns them — this tool does
+no resampling, no re-encoding and no format conversion. Both Gemini backends return the
+same thing:
 
-```yaml
-audio:
-  format: wav          # wav (default) | mp3 | flac | ogg | opus
-  sample_rate: null    # null = native 24 kHz; set 16000 for ASR fine-tuning
-```
+| | |
+|---|---|
+| Container | WAV (a RIFF header is added; the API sends headerless PCM) |
+| Encoding | 16-bit signed little-endian PCM |
+| Sample rate | 24,000 Hz |
+| Channels | 1 (mono) |
 
-WAV at the native rate is a straight copy — nothing is re-encoded. Any other format or
-rate needs `ffmpeg` on PATH. Changing either invalidates existing clips, so a resumed run
-re-synthesises rather than mixing two formats in one dataset.
+The Live API declares `audio/pcm;rate=24000`, the TTS models `audio/L16;rate=24000`. That
+24 kHz is real rather than upsampled: the signal carries measurable energy above 8 kHz with
+no cliff there, which is what a 16 kHz source stretched to 24 would show.
+
+If your trainer wants 16 kHz or a compressed format, resample downstream — `ffmpeg`, `sox`
+or `torchaudio` do it better than a wrapper here would, and keeping the original means the
+dataset never bakes in a lossy step you cannot undo.
 
 Async, rate-limited, and **resumable**: every finished clip writes its own
 audio file plus a sidecar record, so an interrupted run restarts where it stopped. Retries back
@@ -325,12 +330,6 @@ tts:
   max_retries: 5
   sample_rate: 24000
   api_key_env: GEMINI_API_KEY # the key is read from the environment, never the file
-
-audio:                        # what lands on disk, vs what the API returned
-  format: wav                 # wav | mp3 | flac | ogg | opus
-  sample_rate: null           # null keeps the model's native rate (24 kHz)
-  channels: 1
-  bitrate: 64k                # lossy formats only
 
 package:
   formats: [parquet, ljspeech]
