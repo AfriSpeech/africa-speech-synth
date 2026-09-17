@@ -136,7 +136,7 @@ def build(config, out_dir: str, codes: Optional[Sequence[str]] = None,
     """Plan, synthesise and collect samples into `out_dir/audio`."""
     print(f"Planning samples ({'all ready languages' if not codes else len(codes)}, "
           f"normalise={config.normalise})", flush=True)
-    samples = plan(codes, config.tts.voices if codes else None, limit=limit,
+    samples = plan(codes, (config.tts.voices or None) if codes else None, limit=limit,
                    normalise=config.normalise)
     print(f"  {len(samples)} languages with a usable sentence", flush=True)
     if not samples:

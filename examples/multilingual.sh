@@ -12,6 +12,6 @@ for lang in twi yor hau swh ewe gaa; do
     --source "corpus:$lang" \
     --cover phoneme \
     --max-sentences 1000 \
-    --voices Zephyr,Puck,Kore \
+    --voice Zephyr \
     --out "out/$lang"
 done

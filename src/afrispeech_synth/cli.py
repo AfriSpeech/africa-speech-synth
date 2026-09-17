@@ -46,6 +46,8 @@ def _config_from_args(args) -> config_module.RunConfig:
         value = getattr(args, flag, None)
         if value is not None:
             overrides[target] = value
+    if getattr(args, "voice", None):
+        overrides["tts.voice"] = args.voice.strip()
     if getattr(args, "voices", None):
         overrides["tts.voices"] = [v.strip() for v in args.voices.split(",") if v.strip()]
     if getattr(args, "source", None):
@@ -180,12 +182,11 @@ def cmd_space(args) -> int:
 def cmd_voices(args) -> int:
     from .voices import GEMINI_VOICES
 
-    print("Gemini TTS voices — set any of these in `tts.voices`, "
-          "or several to rotate speakers:\n")
+    print("Gemini voices — set one as `tts.voice` for a run. Hear them first "
+          "in the samples gallery, then pick:\n")
     for name, character in GEMINI_VOICES.items():
         print(f"  {name:<16} {character}")
-    print(f"\n{len(GEMINI_VOICES)} voices. Example:  --voices Zephyr,Kore,Sulafat",
-          file=sys.stderr)
+    print(f"\n{len(GEMINI_VOICES)} voices. Example:  --voice Sulafat", file=sys.stderr)
     return 0
 
 
@@ -228,7 +229,7 @@ def build_parser() -> argparse.ArgumentParser:
         sub.add_argument("--max-chars", type=int)
         sub.add_argument("--backend", choices=tts_registry.available())
         sub.add_argument("--model")
-        sub.add_argument("--voices", help="Comma-separated voice names, round-robined")
+        sub.add_argument("--voice", help="Voice for this dataset (default Zephyr)")
         sub.add_argument("--concurrency", type=int)
         sub.add_argument("--rpm", type=int)
         sub.add_argument("--format", help="Comma-separated: parquet,ljspeech")
@@ -279,6 +280,9 @@ def build_parser() -> argparse.ArgumentParser:
     samples_parser.add_argument("--langs", help="Comma-separated codes (default: every ready language)")
     samples_parser.add_argument("--limit", type=int, help="Stop after this many languages")
     samples_parser.add_argument("--no-resume", action="store_true")
+    samples_parser.add_argument("--voices",
+                                help="Comma-separated voice pool to spread across "
+                                     "languages (default: all 30)")
     samples_parser.set_defaults(func=cmd_samples)
 
     space_parser = subparsers.add_parser(

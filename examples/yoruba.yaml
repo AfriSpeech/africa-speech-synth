@@ -24,8 +24,8 @@ select:
 tts:
   backend: gemini
   model: gemini-3.1-flash-tts-preview
-  # Several voices give the dataset speaker variety rather than one cloned voice.
-  voices: [Zephyr, Puck, Kore]
+  # One voice per dataset. `afrispeech-synth voices` lists the rest.
+  voice: Zephyr
   context: speak in Yoruba accent
   concurrency: 10
   rpm: 200

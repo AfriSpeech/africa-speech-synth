@@ -70,7 +70,7 @@ Synthetic speech for **{lang_name}** ({lang_code}), generated with
 
 ### 4. Synthesis
 
-Audio was generated with **{tts_model}** (backend `{tts_backend}`), voice(s)
+Audio was generated with **{tts_model}** (backend `{tts_backend}`), voice
 **{voices}**, prompted with:
 
 ```text
@@ -260,7 +260,7 @@ def render(config, language: Language, clips: int, selection=None,
         normalisation_detail=_normalisation_detail(language, config.normalise),
         tts_model=config.tts.model,
         tts_backend=config.tts.backend,
-        voices=", ".join(config.tts.voices),
+        voices=config.tts.voice,
         prompt_example=render_prompt(config.tts, language, "<normalised_text>"),
         sample_rate=config.tts.sample_rate,
         config_yaml=yaml.safe_dump(safe_config, sort_keys=False, allow_unicode=True),

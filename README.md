@@ -142,9 +142,48 @@ afrispeech-synth run --lang yor --source corpus:yor --normalise grapheme --dry-r
 
 ```bash
 afrispeech-synth voices            # Zephyr Bright, Kore Firm, Sulafat Warm, …
---voices Zephyr                       # one speaker
---voices Zephyr,Kore,Sulafat          # rotated across utterances, so the dataset has three
+--voice Zephyr                        # the dataset's speaker (default)
+--voice Sulafat                       # pick another after hearing it in the gallery
 ```
+
+A dataset is **one voice**. `afrispeech-synth voices` lists all 30, and the
+[samples gallery](#samples-gallery) lets you hear each one before you commit a run to it.
+
+**Two Gemini backends.** `gemini` is the TTS line; `gemini-live` drives the Live API's
+conversational audio models, which sit on a **separate quota** and read several African
+languages more faithfully:
+
+```yaml
+tts:
+  backend: gemini-live
+  model: models/gemini-2.5-flash-native-audio-latest
+  voice: Zephyr
+```
+
+The Live models are conversational, so left alone they *answer* the transcript instead of
+reading it. The backend pins them to reading with a system instruction (`tts.system_instruction`),
+holds a pool of websocket sessions rather than reconnecting per clip, and retires each session
+every `tts.session_turns` utterances so earlier sentences do not bleed into later reads.
+
+On a five-language probe (Twi, Ewe, Dagbani, Ga, Hausa) `gemini-2.5-flash-native-audio-latest`
+and `gemini-3.1-flash-live-preview` both read every sentence back verbatim;
+`gemini-3.8-live` dropped or truncated audio on three of the five, and
+`gemini-3.8-live-extended-thinking` needs `tts.thinking_level` set.
+
+**Audio on disk.** Both Gemini backends return 24 kHz mono PCM — measured, not assumed:
+the response declares `audio/pcm;rate=24000`, and the signal carries real energy above
+8 kHz with no cliff there, so it is genuinely 24 kHz rather than upsampled from 16 kHz.
+That native rate is kept by default and clips are written as WAV:
+
+```yaml
+audio:
+  format: wav          # wav (default) | mp3 | flac | ogg | opus
+  sample_rate: null    # null = native 24 kHz; set 16000 for ASR fine-tuning
+```
+
+WAV at the native rate is a straight copy — nothing is re-encoded. Any other format or
+rate needs `ffmpeg` on PATH. Changing either invalidates existing clips, so a resumed run
+re-synthesises rather than mixing two formats in one dataset.
 
 Async, rate-limited, and **resumable**: every finished clip writes its own
 audio file plus a sidecar record, so an interrupted run restarts where it stopped. Retries back
@@ -196,7 +235,7 @@ afrispeech-synth run \
   --source corpus:twi \
   --cover phoneme \
   --max-sentences 2000 \
-  --voices Zephyr,Puck \
+  --voice Zephyr \
   --out out/twi \
   --repo AfriSpeech/twi-synthetic-speech
 ```
@@ -239,7 +278,7 @@ from afrispeech_synth import RunConfig, run
 config = RunConfig(language="Twi", sources=["corpus:twi"], out="out/twi")
 config.select.cover = "phoneme"
 config.select.max_sentences = 2000
-config.tts.voices = ["Zephyr", "Puck"]
+config.tts.voice = "Zephyr"
 
 run(config)
 ```
@@ -277,9 +316,9 @@ select:
   seed: 0
 
 tts:
-  backend: gemini
+  backend: gemini             # or gemini-live (see below)
   model: gemini-3.1-flash-tts-preview
-  voices: [Zephyr]            # round-robined across utterances
+  voice: Zephyr               # one speaker per dataset
   context: speak in {language} accent
   concurrency: 10
   rpm: 200                    # requests per minute, enforced

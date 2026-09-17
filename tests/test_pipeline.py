@@ -129,7 +129,7 @@ def _config(tmp_path, sentences_file):
         "normalise": "grapheme",
         "out": str(tmp_path / "out"),
         "select": {"cover": "word", "min_chars": 5},
-        "tts": {"backend": "mock", "model": "mock-1", "voices": ["A", "B"],
+        "tts": {"backend": "mock", "model": "mock-1", "voice": "A",
                 "rpm": 0, "concurrency": 4},
         "package": {"formats": ["parquet", "ljspeech"]},
     })
@@ -163,7 +163,8 @@ def test_end_to_end(tmp_path):
     assert rows[0]["audio"]["bytes"][:4] == b"RIFF"
     assert rows[0]["audio"]["path"].endswith(".wav")
     assert rows[0]["normalised_text"] != rows[0]["text"]
-    assert {r["voice"] for r in rows} == {"A", "B"}
+    # One voice per dataset: every clip is the voice the run configured.
+    assert {r["voice"] for r in rows} == {"A"}
 
     # manifest and card
     manifest = (tmp_path / "out" / "metadata.jsonl").read_text(encoding="utf-8").splitlines()

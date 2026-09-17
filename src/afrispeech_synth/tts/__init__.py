@@ -19,7 +19,13 @@ def _load_gemini():
     return GeminiTTS
 
 
+def _load_gemini_live():
+    from .gemini_live import GeminiLiveTTS
+    return GeminiLiveTTS
+
+
 register("gemini", _load_gemini)
+register("gemini-live", _load_gemini_live)
 
 
 def available() -> list:

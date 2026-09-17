@@ -29,7 +29,7 @@ select:
 tts:
   backend: gemini
   model: gemini-3.1-flash-tts-preview
-  voices: [Zephyr]
+  voice: Zephyr
   context: speak in Twi accent
   concurrency: 10
   rpm: 200

@@ -18,6 +18,15 @@ DEFAULT_PROMPT = """## Sample Context:
 {text}"""
 
 
+LIVE_SYSTEM_INSTRUCTION = (
+    "You are a text-to-speech engine. The user message contains a transcript, "
+    "possibly preceded by context lines describing how to speak it. Read the "
+    "transcript aloud verbatim, in its own language, applying that context. "
+    "Never translate it, never answer it, never comment on it, and never add "
+    "or omit words. Speak only the transcript and nothing else."
+)
+
+
 @dataclass
 class SelectConfig:
     # "none" keeps every sentence; "word" and "phoneme" run greedy set cover.
@@ -33,7 +42,13 @@ class SelectConfig:
 class TTSConfig:
     backend: str = "gemini"
     model: str = "gemini-3.1-flash-tts-preview"
-    voices: List[str] = field(default_factory=lambda: ["Zephyr"])
+    # One voice per dataset. A dataset is normally one speaker, so this is a
+    # single name, not a rotation — `afrispeech-synth voices` lists the choices
+    # and the samples gallery lets you hear them before picking.
+    voice: str = "Zephyr"
+    # Gallery only: the pool the samples command spreads across languages so a
+    # demo page covers the catalogue. It has no effect on a dataset run.
+    voices: List[str] = field(default_factory=list)
     # {context} and {text} are filled in per utterance.
     prompt: str = DEFAULT_PROMPT
     context: str = "speak in {language} accent"
@@ -46,6 +61,17 @@ class TTSConfig:
     # format are `audio:` below — a different thing, applied after synthesis.
     sample_rate: int = 24000
     api_key_env: str = "GEMINI_API_KEY"
+
+    # --- gemini-live backend only -----------------------------------------
+    # The Live models are conversational: without an instruction pinning them
+    # to reading, they answer the transcript instead of speaking it.
+    system_instruction: str = LIVE_SYSTEM_INSTRUCTION
+    # Retire a Live session after this many utterances. The API keeps the whole
+    # turn history in context, so a session left open indefinitely slows down
+    # and starts letting earlier sentences bleed into later reads. 0 disables.
+    session_turns: int = 25
+    # Required by gemini-3.8-live-extended-thinking, ignored by other models.
+    thinking_level: Optional[str] = None
 
 
 @dataclass

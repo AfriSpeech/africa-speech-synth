@@ -31,7 +31,7 @@ class Utterance:
     text: str
     transcript: str        # what the model is actually asked to speak
     # Per-utterance overrides. A single-language run leaves all three unset and
-    # takes the run's voice rotation and language; the samples gallery sets them
+    # takes the run's single voice and language; the samples gallery sets them
     # so one pass can cover many languages, each with its own voice and its own
     # accent context, without a second copy of the retry/rate-limit machinery.
     voice: Optional[str] = None
@@ -143,7 +143,7 @@ async def _one(utterance: Utterance, backend, workspace: Workspace, limiter: Rat
                semaphore: asyncio.Semaphore, config, language: Language,
                audio_config, counters: dict) -> bool:
     async with semaphore:
-        voice = utterance.voice or config.voices[utterance.index % len(config.voices)]
+        voice = utterance.voice or config.voice
         prompt = render_prompt(config, utterance.language or language, utterance.transcript)
 
         for attempt in range(1, config.max_retries + 1):
@@ -213,7 +213,7 @@ async def synthesise_async(utterances: Sequence[Utterance], config, language: La
         return {"done": 0, "failed": 0, "skipped": skipped, "workspace": workspace}
 
     backend = tts_registry.get_backend(config.backend, config, language)
-    print(f"  backend: {backend.describe()}, voices={','.join(config.voices)}, "
+    print(f"  backend: {backend.describe()}, voice={config.voice}, "
           f"concurrency={config.concurrency}, rpm={config.rpm}", flush=True)
     print(f"  audio: {audio_config.format}"
           f"{f' @ {audio_config.sample_rate} Hz' if audio_config.sample_rate else ' (native rate)'}"
