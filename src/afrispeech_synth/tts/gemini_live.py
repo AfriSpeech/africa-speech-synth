@@ -90,7 +90,15 @@ class GeminiLiveTTS(TTSBackend):
             )
         self._client = genai.Client(api_key=api_key)
 
-        from ..live_models import MODELS, names, unknown
+        from ..live_models import DEFAULT, MODELS, names, unknown
+        # `tts.model` defaults to a TTS model, which the Live API cannot serve.
+        # Rather than fail on a config that only named the backend, fall back to
+        # the Live default and say so.
+        if "tts" in config.model and unknown(config.model):
+            print(f"  note: {config.model} is a TTS model, not a Live one; "
+                  f"using {DEFAULT}", flush=True)
+            config = config.__class__(**{**vars(config), "model": DEFAULT})
+            self.config = config
         if unknown(config.model):
             print(f"  note: {config.model} is not one of the models this build has "
                   f"been probed on ({', '.join(names())}). It may work; it has not "

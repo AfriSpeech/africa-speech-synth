@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from typing import Dict, List, NamedTuple
 
-DEFAULT = "models/gemini-2.5-flash-native-audio-latest"
+DEFAULT = "models/gemini-3.1-flash-live-preview"
 
 
 class LiveModel(NamedTuple):
@@ -30,15 +30,15 @@ MODELS: Dict[str, LiveModel] = {
             "models/gemini-2.5-flash-native-audio-latest",
             "Gemini 2.5 Flash Native Audio",
             "5/5 clean",
-            "Read every probe sentence back verbatim. The default, and what the "
-            "sample gallery was built with.",
+            "Read every probe sentence back verbatim. Brighter than 3 Flash Live "
+            "— 99% of its energy reaches ~9.7 kHz against ~5.6 kHz.",
         ),
         LiveModel(
             "models/gemini-3.1-flash-live-preview",
             "Gemini 3 Flash Live",
             "5/5 clean",
-            "Also read every probe sentence back verbatim, and a little faster. "
-            "A darker voice: less energy above 4 kHz than 2.5 native.",
+            "Read every probe sentence back verbatim, and a little faster. The "
+            "default, and what the sample gallery is built with.",
         ),
         LiveModel(
             "models/gemini-3.8-live",

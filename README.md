@@ -172,8 +172,8 @@ against what the model said it spoke:
 
 | `tts.model` | Probe | Notes |
 |---|---|---|
-| `models/gemini-2.5-flash-native-audio-latest` **(default)** | 5/5 clean | Read every sentence back verbatim. What the sample gallery was built with. |
-| `models/gemini-3.1-flash-live-preview` | 5/5 clean | Also verbatim, and a little faster. A darker voice — less energy above 4 kHz. |
+| `models/gemini-2.5-flash-native-audio-latest` | 5/5 clean | Read every sentence back verbatim. Brighter — energy reaches ~9.7 kHz against ~5.6 kHz. |
+| `models/gemini-3.1-flash-live-preview` **(default)** | 5/5 clean | Verbatim, and a little faster. What the sample gallery is built with. |
 | `models/gemini-3.8-live` | 2/5 clean | Newest but weakest here: no transcript for Twi or Ewe, a 0.8s truncated clip for Dagbani. Probe your language first. |
 
 `gemini-3.8-live-extended-thinking` additionally requires `tts.thinking_level`. The Live

@@ -1,0 +1,62 @@
+[
+ {
+  "code": "ach",
+  "name": "Acholi",
+  "family": "Nilotic",
+  "region": "East Africa",
+  "voice": "Zephyr",
+  "text": "Lobo onoŋo tye nono, onyobbe woko atata piny macol ocido wi kut matut, kun Cwiny pa Lubaŋa twago wi pii.",
+  "normalised_text": "lobo onongo tye nono, onyobbe woko atata piny machol ochido wi kut matut, kun chwiny pa lubanga twago wi pii.",
+  "audio": "audio/ach_Zephyr.mp3"
+ },
+ {
+  "code": "adj",
+  "name": "Adioukrou",
+  "family": "Atlantic-Congo",
+  "region": "West Africa",
+  "voice": "Zephyr",
+  "text": "Jesu Krist lagŋɛl Abraham ɛm, lele David ɛm ab e mew.",
+  "normalised_text": "jesu krist lagngel abraham em, lele david em ab e mew.",
+  "audio": "audio/adj_Zephyr.mp3"
+ },
+ {
+  "code": "afr",
+  "name": "Afrikaans",
+  "family": "Indo-European",
+  "region": "East Africa",
+  "voice": "Zephyr",
+  "text": "Alles het begin toe God die hemel en die aarde gemaak het.",
+  "normalised_text": "alles het begin toe god die hemel eng die aarde khemaak het.",
+  "audio": "audio/afr_Zephyr.mp3"
+ },
+ {
+  "code": "alz",
+  "name": "Alur",
+  "family": "Nilotic",
+  "region": "Central Africa",
+  "voice": "Zephyr",
+  "text": "Man ngom ubedo umbe ayi man mananu; man mudho bedo wi wang longro: e Tipo pa Mungu riebre wi wang pi.",
+  "normalised_text": "man ngom ubedo umbe ayi man mananu; man mudo bedo wi wang longro e tipo pa mungu riebre wi wang pi.",
+  "audio": "audio/alz_Zephyr.mp3"
+ },
+ {
+  "code": "amh",
+  "name": "Amharic",
+  "family": "Afro-Asiatic",
+  "region": "East Africa",
+  "voice": "Zephyr",
+  "text": "ምድር ግን ባዶ ነበ​ረች፤ አት​ታ​ይ​ምም ነበር፤ የተ​ዘ​ጋ​ጀ​ችም አል​ነ​በ​ረ​ችም፤ ጨለ​ማም በው​ኃው ላይ ነበረ፤ የእ​ግ​ዚ​አ​ብ​ሔ​ርም መን​ፈስ በው​ኃው ላይ ይሰ​ፍፍ ነበር።.",
+  "normalised_text": "mudiri ginu bado neberechi etitayimumu neberi yetezegajechimu eluneberechimu chelemamu bewihawi layi nebere yeigiziebiherimu menufesi bewihawi layi yisefifi neberi.",
+  "audio": "audio/amh_Zephyr.mp3"
+ },
+ {
+  "code": "any",
+  "name": "Anyin",
+  "family": "Atlantic-Congo",
+  "region": "West Africa",
+  "voice": "Zephyr",
+  "text": "Ɛ 'nwun Zozi Kilisi anan-mɔ dunman'n, ɔ bɔ yɩ́ bʋ *Abalahamʋn ɛlɔ dede ɔ sɩn belemgbin *Davidi ɛlɔ nán ɔ'a tʋ Zozi.",
+  "normalised_text": "e nwun zozi kilisi ananmo dunmann, o bo yi bu abalahamun elo dede o sin belemgbin davidi elo nan oa tu zozi.",
+  "audio": "audio/any_Zephyr.mp3"
+ }
+]
