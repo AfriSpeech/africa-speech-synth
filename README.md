@@ -18,7 +18,7 @@ afrispeech-synth run examples/twi.yaml
 ```
 
 **[Hear what it produces](https://huggingface.co/spaces/AfriSpeech/afrispeech-synth-samples)** —
-one sample per language, 215 languages, a different voice each.
+one sample per language, 223 languages, a different voice each.
 
 ## What's around Gemini
 
@@ -26,7 +26,7 @@ one sample per language, 215 languages, a different voice each.
 |---|---|
 | **The voice** | **Google Gemini**, [30 voices](#4--synthesise), your own API key. Two backends: [TTS](https://ai.google.dev/gemini-api/docs/speech-generation) (`gemini`, the reference — every dataset built with this tool so far was spoken by it) and the [Live API](https://ai.google.dev/gemini-api/docs/live) (`gemini-live`, a separate quota, better on several African languages). |
 | **The text** | [africa-corpus-builder](https://github.com/AfriSpeech/africa-corpus-builder) — source text for **693 African languages**, so a language with no corpus of its own still has a starting point |
-| **The orthography** | [africa-g2p](https://github.com/AfriSpeech/africa-g2p) — phoneme tables for **400 languages**. Feeding Gemini a language's raw orthography gets you its guess at `ɔ`, `ɛ` and `ŋ`; feeding it the universal grapheme set gets you the sound |
+| **The orthography** | [africa-g2p](https://github.com/AfriSpeech/africa-g2p) — phoneme tables for **400 languages** (**408** once aliases resolve). Feeding Gemini a language's raw orthography gets you its guess at `ɔ`, `ɛ` and `ŋ`; feeding it the universal grapheme set gets you the sound |
 | **The names** | [afriso](https://github.com/AfriSpeech/afriso) — resolves `Twi`, `tw`, `aka`, `Asante Twi` to one code all of the above agree on |
 | **The selection** | Greedy set cover over phoneme units — on Twi, 4,141 candidate sentences reduced to 115 at full phoneme coverage. 97% fewer Gemini calls for the same coverage |
 
@@ -44,12 +44,18 @@ For **recorded** African speech rather than synthetic, use
 
 | | Languages | What you need to do |
 |---|--:|---|
-| **Ready** | **215** | Nothing. Name the language and run. |
+| **Ready** | **223** | Nothing. Name the language and run. |
 | **Bring your own text** | 185 | Point a `file:` or `hf:` source at your own sentences. |
-| **No G2P table** | 478 | Text is available; run with `--normalise none`. |
+| **No G2P table** | 470 | Text is available; run with `--normalise none`. |
 
-africa-g2p has phoneme tables for **400** African languages, africa-corpus-builder has text
-for **693**, and **215 are in both** — those need nothing from you but a name:
+africa-g2p converts **408** African languages to universal orthography,
+africa-corpus-builder has text for **693**, and **223 are in both** — those need nothing
+from you but a name:
+
+The 408 is measured rather than read off the registry, which lists 400 keys. Eight more
+corpus languages — Akan, Luo, Luwo, Mwan, Ngemba, Kamba, Malgache and Tonga — reach a table
+through an alias, so matching on keys alone silently dropped them from every language list
+and from the samples gallery.
 
 ```bash
 afrispeech-synth run --lang Zulu --source corpus:zul --out out/zul
@@ -70,7 +76,7 @@ Check where yours stands:
 
 ```bash
 afrispeech-synth langs --search zulu     # zul  Zulu  ready  Atlantic-Congo
-afrispeech-synth langs --ready           # the 215 that need nothing from you
+afrispeech-synth langs --ready           # the 223 that need nothing from you
 ```
 
 Languages are matched by exact code only. Matching by name would add ~73 more, but it pairs

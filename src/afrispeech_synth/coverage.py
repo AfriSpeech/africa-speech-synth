@@ -2,9 +2,13 @@
 
 Three different numbers matter to someone deciding whether to use this tool:
 
-  400  languages africa-g2p can phonemise
+  408  languages africa-g2p converts to universal orthography
   693  languages africa-corpus-builder has text for
-  215  languages in both — these run with no input from you at all
+  223  languages in both — these run with no input from you at all
+
+Those counts are measured, not read off the registry: africa-g2p lists 400 keys,
+but eight more corpus languages — Akan, Luo, Luwo, Mwan, Ngemba, Kamba, Malgache
+and Tonga — reach a table through an alias. Matching on keys alone dropped them.
 
 The 185 with a G2P table but no corpus text still work; you just have to supply
 the text yourself with a `file:` or `hf:` source. The 478 with text but no G2P
@@ -31,6 +35,8 @@ class Entry:
     name: str
     family: str = ""
     region: str = ""
+    # True when the language converts to universal orthography — by its own
+    # registry entry or through an alias. Not merely "has a registry key".
     has_g2p: bool = False
     has_text: bool = False
 
@@ -109,8 +115,31 @@ def load(refresh: bool = False) -> Coverage:
         else:
             entries[code] = Entry(code=code, name=name or code, has_text=True)
 
+    # Registry keys are not the whole story: a corpus code can reach a table
+    # through an alias — `aka` (Akan), `luo`, `plt` (Malagasy) and five others
+    # all convert to universal without appearing as keys themselves. Asking the
+    # normaliser is the only answer that matches what a run will actually do,
+    # so anything with text but no exact key is checked rather than assumed.
+    for entry in entries.values():
+        if entry.has_text and not entry.has_g2p and _universal_available(entry.code):
+            entry.has_g2p = True
+
     _CACHE = Coverage(entries)
     return _CACHE
+
+
+def _universal_available(code: str) -> bool:
+    """Whether this language really converts to universal orthography."""
+    try:
+        from .lang import resolve
+        from .normalise import Normaliser
+        normaliser = Normaliser(resolve(code), "universal")
+        if not normaliser.enabled:
+            return False
+        normaliser("test")
+        return True
+    except Exception:
+        return False
 
 
 def ready_codes() -> List[str]:

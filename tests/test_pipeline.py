@@ -228,10 +228,14 @@ def test_coverage_reports_three_tiers():
 
     catalogue = coverage.load()
     counts = catalogue.counts()
-    assert counts["g2p"] == 400
+    # Registry keys are a lower bound, not the count: languages that reach a
+    # table through an alias convert to universal too and must be included.
+    assert counts["g2p"] >= 400
     assert counts["ready"] <= counts["g2p"]
     twi = catalogue.entries["twi"]
     assert twi.has_g2p and twi.status in {"ready", "bring text"}
+    # Akan resolves by alias; matching registry keys alone used to drop it.
+    assert catalogue.entries["aka"].has_g2p
 
 
 def test_coverage_status_labels():
