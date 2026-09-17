@@ -157,7 +157,8 @@ def cmd_samples(args) -> int:
     codes = [c.strip() for c in args.langs.split(",") if c.strip()] if args.langs else None
     built = samples_module.build(config, args.dir, codes=codes, limit=args.limit,
                                  resume=not args.no_resume,
-                                 all_voices=args.all_voices)
+                                 all_voices=args.all_voices,
+                                 compress=args.compress)
     print(f"\n{len(built)} samples in {args.dir}. Next: afrispeech-synth space "
           f"--dir {args.dir} --repo org/name")
     return 0
@@ -313,6 +314,10 @@ def build_parser() -> argparse.ArgumentParser:
     samples_parser.add_argument("--no-resume", action="store_true")
     samples_parser.add_argument("--all-voices", action="store_true",
                                 help="Every voice for every language, not one each")
+    samples_parser.add_argument("--compress", action="store_true",
+                                help="Re-encode clips to 64k mono MP3. Only worth it when "
+                                     "the audio ships inside the Space; with --audio-repo "
+                                     "the dataset should keep the original WAV.")
     samples_parser.add_argument("--voices",
                                 help="Comma-separated voice pool to spread across "
                                      "languages (default: all 30)")

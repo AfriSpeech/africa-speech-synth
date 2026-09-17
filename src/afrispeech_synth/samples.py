@@ -32,14 +32,16 @@ def _ffmpeg() -> Optional[str]:
     return shutil.which("ffmpeg")
 
 
-def _to_web_audio(wav_path: str, destination_stem: str) -> str:
-    """Compress to mono MP3 for the gallery, or copy the WAV if ffmpeg is absent.
+def _to_web_audio(wav_path: str, destination_stem: str, compress: bool = False) -> str:
+    """Copy the clip for the gallery, compressing to mono MP3 only if asked.
 
-    215 raw 24 kHz WAVs is ~65 MB of page weight for clips a few seconds long.
-    MP3 at 64 kbps mono is perceptually fine for speech and about a fifth the
-    size; the dataset itself keeps the original WAV either way.
+    Lossless by default. Compression existed for when the clips shipped inside
+    the Space, where a few hundred MB of WAV is page weight nobody wants. Once
+    they live in a dataset repo that trade is the wrong way round: a dataset
+    should hold what the model produced, and a lossy step baked in at publish
+    time cannot be undone by whoever downloads it.
     """
-    if _ffmpeg():
+    if compress and _ffmpeg():
         out = destination_stem + ".mp3"
         result = subprocess.run(
             [_ffmpeg(), "-y", "-loglevel", "error", "-i", wav_path,
@@ -152,7 +154,7 @@ def _utterances(samples: Sequence[Sample]) -> List[Utterance]:
 
 def build(config, out_dir: str, codes: Optional[Sequence[str]] = None,
           limit: Optional[int] = None, resume: bool = True,
-          all_voices: bool = False) -> List[Sample]:
+          all_voices: bool = False, compress: bool = False) -> List[Sample]:
     """Plan, synthesise and collect samples into `out_dir/audio`."""
     print(f"Planning samples ({'all ready languages' if not codes else len(codes)}, "
           f"normalise={config.normalise}"
@@ -185,13 +187,14 @@ def build(config, out_dir: str, codes: Optional[Sequence[str]] = None,
         if not record:
             continue
         destination = _to_web_audio(record["audio_path"],
-                                    os.path.join(audio_dir, f"{sample.code}_{sample.voice}"))
+                                    os.path.join(audio_dir, f"{sample.code}_{sample.voice}"),
+                                    compress=compress)
         sample.audio = f"audio/{os.path.basename(destination)}"
         kept.append(sample)
 
     total_mb = sum(os.path.getsize(os.path.join(out_dir, s.audio)) for s in kept) / 1e6
-    print(f"  audio: {total_mb:.1f}MB"
-          f"{'' if _ffmpeg() else ' (install ffmpeg to compress)'}", flush=True)
+    print(f"  audio: {total_mb:.1f}MB "
+          f"({'MP3' if compress else 'WAV, as generated'})", flush=True)
 
     manifest = os.path.join(out_dir, "samples.json")
     with open(manifest, "w", encoding="utf-8") as handle:

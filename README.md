@@ -286,7 +286,7 @@ them, so the gallery is also the voice catalogue. `--all-voices` instead reads e
 in *every* voice — the same sentence throughout, which is what makes voices comparable, since
 switching voice on a card changes the voice and nothing else. That is 30x the clips for the
 same languages (~6,500 for the full set, a few hundred MB), so it is worth a `--limit` run
-first. Clips are compressed to MP3 if `ffmpeg` is on PATH.
+first. Clips are published as generated — 24 kHz mono WAV. `--compress` re-encodes them to 64k MP3, which is only worth it when the audio ships inside the Space rather than in a dataset.
 
 ```bash
 afrispeech-synth samples --all-voices --limit 3   # 3 languages x 30 voices, to preview
