@@ -89,6 +89,13 @@ class GeminiLiveTTS(TTSBackend):
                 f"Keys must never go in a config file — those get committed."
             )
         self._client = genai.Client(api_key=api_key)
+
+        from ..live_models import MODELS, names, unknown
+        if unknown(config.model):
+            print(f"  note: {config.model} is not one of the models this build has "
+                  f"been probed on ({', '.join(names())}). It may work; it has not "
+                  f"been checked on African languages.", flush=True)
+        self._model_label = MODELS[config.model].label if config.model in MODELS else config.model
         self._idle: Dict[str, List[_Session]] = {}
         self._open: List[_Session] = []
         self._lock = asyncio.Lock()
@@ -197,6 +204,9 @@ class GeminiLiveTTS(TTSBackend):
         # The rate the response actually declared, not the one assumed above.
         rate = wav_sample_rate(wav) or LIVE_RATE
         return Clip(audio=wav, mime_type="audio/wav", sample_rate=rate, voice=voice)
+
+    def describe(self) -> str:
+        return f"{self.name} ({self._model_label})"
 
     async def close(self) -> None:
         async with self._lock:

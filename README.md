@@ -166,10 +166,23 @@ reading it. The backend pins them to reading with a system instruction (`tts.sys
 holds a pool of websocket sessions rather than reconnecting per clip, and retires each session
 every `tts.session_turns` utterances so earlier sentences do not bleed into later reads.
 
-On a five-language probe (Twi, Ewe, Dagbani, Ga, Hausa) `gemini-2.5-flash-native-audio-latest`
-and `gemini-3.1-flash-live-preview` both read every sentence back verbatim;
-`gemini-3.8-live` dropped or truncated audio on three of the five, and
-`gemini-3.8-live-extended-thinking` needs `tts.thinking_level` set.
+Three Live models generate speech, and `afrispeech-synth models` lists them with what a
+probe actually found — one sentence in each of Twi, Ewe, Dagbani, Ga and Hausa, scored
+against what the model said it spoke:
+
+| `tts.model` | Probe | Notes |
+|---|---|---|
+| `models/gemini-2.5-flash-native-audio-latest` **(default)** | 5/5 clean | Read every sentence back verbatim. What the sample gallery was built with. |
+| `models/gemini-3.1-flash-live-preview` | 5/5 clean | Also verbatim, and a little faster. A darker voice — less energy above 4 kHz. |
+| `models/gemini-3.8-live` | 2/5 clean | Newest but weakest here: no transcript for Twi or Ewe, a 0.8s truncated clip for Dagbani. Probe your language first. |
+
+`gemini-3.8-live-extended-thinking` additionally requires `tts.thinking_level`. The Live
+API's other models are not speech generators and are deliberately absent:
+`gemini-3.5-transcribe-live` is ASR, and `gemini-3.5-live-translate-preview` translates
+rather than reads — the exact behaviour the system instruction exists to prevent.
+
+A model outside this list still runs; the backend just notes that it has not been checked
+on African languages.
 
 **What the audio is.** Clips are written exactly as the API returns them — this tool does
 no resampling, no re-encoding and no format conversion. Both Gemini backends return the

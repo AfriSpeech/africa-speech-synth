@@ -1,0 +1,20 @@
+Planning samples (all ready languages, normalise=universal, every voice)
+  planned 750/25
+  planned 1500/50
+  planned 2250/75
+  planned 3000/100
+  planned 3750/125
+  planned 4500/150
+  planned 5250/175
+  planned 6000/200
+  6450 languages with a usable sentence
+  215 languages x 30 voices = 6450 clips (215-215 per voice)
+  resuming: 6021 already done, 429 to go
+  backend: gemini-live (models/gemini-2.5-flash-native-audio-latest), voice=Zephyr, concurrency=10, rpm=200
+  25/429 synthesised (40/min, 0 failed)
+  50/429 synthesised (42/min, 0 failed)
+  75/429 synthesised (45/min, 0 failed)
+  100/429 synthesised (48/min, 0 failed)
+  125/429 synthesised (48/min, 0 failed)
+  150/429 synthesised (49/min, 0 failed)
+  175/429 synthesised (48/min, 0 failed)

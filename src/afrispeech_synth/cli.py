@@ -189,6 +189,23 @@ def cmd_space(args) -> int:
     return 0
 
 
+def cmd_models(args) -> int:
+    from .live_models import DEFAULT, MODELS
+
+    print("Gemini Live models that generate speech — set one as `tts.model` "
+          "with `tts.backend: gemini-live`.\n")
+    print(f"  {'model':46s} {'probe':10s} {'name'}")
+    for model in MODELS.values():
+        mark = " *" if model.name == DEFAULT else "  "
+        print(f"{mark}{model.name:46s} {model.probe:10s} {model.label}")
+        print(f"   {'':46s} {'':10s} {model.note}")
+    print("\n  * default. Probe = one sentence in each of Twi, Ewe, Dagbani, Ga and "
+          "Hausa,\n    scored against what the model said it spoke.", file=sys.stderr)
+    print("  The TTS backend (`tts.backend: gemini`) is separate: "
+          "gemini-3.1-flash-tts-preview.", file=sys.stderr)
+    return 0
+
+
 def cmd_voices(args) -> int:
     from .voices import GEMINI_VOICES
 
@@ -282,6 +299,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     voices_parser = subparsers.add_parser("voices", help="List the TTS voices you can choose")
     voices_parser.set_defaults(func=cmd_voices)
+
+    models_parser = subparsers.add_parser(
+        "models", help="List the Gemini Live models you can synthesise with")
+    models_parser.set_defaults(func=cmd_models)
 
     samples_parser = add_common(
         subparsers.add_parser("samples", help="Generate one sample clip per language"))
