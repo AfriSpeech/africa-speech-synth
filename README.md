@@ -248,8 +248,8 @@ afrispeech-synth run \
 ### Samples gallery
 
 **[Hear it: AfriSpeech/afrispeech-synth-samples](https://huggingface.co/spaces/AfriSpeech/afrispeech-synth-samples)**
-— one clip per language, each in a different voice. The page is built from this repo, so it
-has no repo of its own:
+— every language, in every voice. The page is built from this repo, so it has no repo of
+its own:
 
 ```bash
 afrispeech-synth samples --limit 20          # generate clips into space/
@@ -257,8 +257,17 @@ afrispeech-synth space                       # build space/index.html, preview l
 afrispeech-synth space --repo org/my-samples # publish it
 ```
 
-`samples` covers every ready language by default and spreads the 30 voices evenly across them,
-so the gallery is also the voice catalogue. Clips are compressed to MP3 if `ffmpeg` is on PATH.
+`samples` covers every ready language by default and spreads the 30 voices evenly across
+them, so the gallery is also the voice catalogue. `--all-voices` instead reads every language
+in *every* voice — the same sentence throughout, which is what makes voices comparable, since
+switching voice on a card changes the voice and nothing else. That is 30x the clips for the
+same languages (~6,500 for the full set, a few hundred MB), so it is worth a `--limit` run
+first. Clips are compressed to MP3 if `ffmpeg` is on PATH.
+
+```bash
+afrispeech-synth samples --all-voices --limit 3   # 3 languages x 30 voices, to preview
+afrispeech-synth samples --all-voices             # the full matrix
+```
 
 ### One stage at a time
 

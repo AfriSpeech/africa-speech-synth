@@ -80,14 +80,22 @@ def _pick_sentence(sentences: Sequence[str]) -> Optional[str]:
 def plan(codes: Optional[Sequence[str]] = None,
          voice_list: Optional[Sequence[str]] = None,
          limit: Optional[int] = None,
-         normalise: str = "grapheme") -> List[Sample]:
-    """Choose a sentence and a voice for each language, without calling any API."""
+         normalise: str = "grapheme",
+         all_voices: bool = False) -> List[Sample]:
+    """Choose a sentence and voice(s) for each language, without calling any API.
+
+    By default each language gets one voice, spread round-robin so the gallery
+    covers the catalogue. With `all_voices`, every language is read by every
+    voice instead: the same sentence across the whole catalogue, which is what
+    makes voices comparable — you hear the voice change and nothing else.
+    """
     catalogue = coverage.load()
     entries = ([catalogue.entries[c] for c in codes if c in catalogue.entries]
                if codes else catalogue.ready())
     if limit:
         entries = entries[:limit]
 
+    pool = list(voice_list or voices_module.ALL)
     assignment = voices_module.spread([e.code for e in entries], voice_list or ())
     samples: List[Sample] = []
     for position, entry in enumerate(entries, 1):
@@ -111,42 +119,56 @@ def plan(codes: Optional[Sequence[str]] = None,
             print(f"  [{position}/{len(entries)}] {entry.code}: {normalise} unavailable "
                   f"({type(exc).__name__}), sending original text", flush=True)
             normalised = sentence
-        samples.append(Sample(
-            code=entry.code, name=entry.name, family=entry.family, region=entry.region,
-            voice=assignment[entry.code], text=sentence, normalised_text=normalised,
-        ))
+        chosen = pool if all_voices else [assignment[entry.code]]
+        for voice in chosen:
+            samples.append(Sample(
+                code=entry.code, name=entry.name, family=entry.family,
+                region=entry.region, voice=voice, text=sentence,
+                normalised_text=normalised,
+            ))
         if position % 25 == 0:
             print(f"  planned {len(samples)}/{position}", flush=True)
     return samples
 
 
+def _stem(sample: Sample) -> str:
+    return f"sample_{sample.code}_{sample.voice}"
+
+
 def _utterances(samples: Sequence[Sample]) -> List[Utterance]:
+    # Grouped by voice: a Live session's voice is fixed when it connects, so
+    # consecutive utterances sharing one keeps the session pool warm instead of
+    # reconnecting per clip. Order does not affect output — stems are unique.
+    ordered = sorted(samples, key=lambda s: (s.voice, s.code))
     out = []
-    for index, sample in enumerate(samples):
+    for index, sample in enumerate(ordered):
         language = resolve(sample.code)
         out.append(Utterance(index=index, text=sample.text,
                              transcript=sample.normalised_text,
                              voice=sample.voice, language=language,
-                             name=f"sample_{sample.code}"))
+                             name=_stem(sample)))
     return out
 
 
 def build(config, out_dir: str, codes: Optional[Sequence[str]] = None,
-          limit: Optional[int] = None, resume: bool = True) -> List[Sample]:
+          limit: Optional[int] = None, resume: bool = True,
+          all_voices: bool = False) -> List[Sample]:
     """Plan, synthesise and collect samples into `out_dir/audio`."""
     print(f"Planning samples ({'all ready languages' if not codes else len(codes)}, "
-          f"normalise={config.normalise})", flush=True)
-    samples = plan(codes, (config.tts.voices or None) if codes else None, limit=limit,
-                   normalise=config.normalise)
+          f"normalise={config.normalise}"
+          f"{', every voice' if all_voices else ''})", flush=True)
+    samples = plan(codes, config.tts.voices or None, limit=limit,
+                   normalise=config.normalise, all_voices=all_voices)
     print(f"  {len(samples)} languages with a usable sentence", flush=True)
     if not samples:
         return []
 
-    assignment = {s.code: s.voice for s in samples}
-    spread_counts = voices_module.distribution(assignment)
-    print(f"  {len(spread_counts)} distinct voices, "
-          f"{min(spread_counts.values())}-{max(spread_counts.values())} languages each",
-          flush=True)
+    per_voice: Dict[str, int] = {}
+    for sample in samples:
+        per_voice[sample.voice] = per_voice.get(sample.voice, 0) + 1
+    languages = len({s.code for s in samples})
+    print(f"  {languages} languages x {len(per_voice)} voices = {len(samples)} clips "
+          f"({min(per_voice.values())}-{max(per_voice.values())} per voice)", flush=True)
 
     work_dir = os.path.join(out_dir, "work")
     result = synthesise(_utterances(samples), config.tts, resolve(config.language),
@@ -159,11 +181,11 @@ def build(config, out_dir: str, codes: Optional[Sequence[str]] = None,
     by_name = {record.get("name"): record for record in result["workspace"].records()}
     kept: List[Sample] = []
     for sample in samples:
-        record = by_name.get(f"sample_{sample.code}")
+        record = by_name.get(_stem(sample))
         if not record:
             continue
         destination = _to_web_audio(record["audio_path"],
-                                    os.path.join(audio_dir, sample.code))
+                                    os.path.join(audio_dir, f"{sample.code}_{sample.voice}"))
         sample.audio = f"audio/{os.path.basename(destination)}"
         kept.append(sample)
 

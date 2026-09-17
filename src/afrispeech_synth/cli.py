@@ -156,7 +156,8 @@ def cmd_samples(args) -> int:
     config = _config_from_args(args)
     codes = [c.strip() for c in args.langs.split(",") if c.strip()] if args.langs else None
     built = samples_module.build(config, args.dir, codes=codes, limit=args.limit,
-                                 resume=not args.no_resume)
+                                 resume=not args.no_resume,
+                                 all_voices=args.all_voices)
     print(f"\n{len(built)} samples in {args.dir}. Next: afrispeech-synth space "
           f"--dir {args.dir} --repo org/name")
     return 0
@@ -280,6 +281,8 @@ def build_parser() -> argparse.ArgumentParser:
     samples_parser.add_argument("--langs", help="Comma-separated codes (default: every ready language)")
     samples_parser.add_argument("--limit", type=int, help="Stop after this many languages")
     samples_parser.add_argument("--no-resume", action="store_true")
+    samples_parser.add_argument("--all-voices", action="store_true",
+                                help="Every voice for every language, not one each")
     samples_parser.add_argument("--voices",
                                 help="Comma-separated voice pool to spread across "
                                      "languages (default: all 30)")

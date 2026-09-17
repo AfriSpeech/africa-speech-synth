@@ -11,7 +11,7 @@ from __future__ import annotations
 import html
 import json
 import os
-from typing import List, Optional, Sequence
+from typing import Dict, List, Optional, Sequence
 
 from . import coverage, voices as voices_module
 from .samples import Sample
@@ -36,8 +36,9 @@ tags:
 One synthetic speech sample per African language, generated with
 [afrispeech-synth](https://github.com/AfriSpeech/afrispeech-synth).
 
-Each language is spoken by a different one of Google Gemini TTS's 30 voices, so browsing the
-gallery covers the whole voice catalogue. Audio is model-generated, not recorded speech.
+Voices come from Google Gemini's 30-voice catalogue — either one per language, or every
+voice for every language when the gallery was built with `--all-voices`. Audio is
+model-generated, not recorded speech.
 """
 
 STYLE = """
@@ -110,10 +111,16 @@ function apply() {
   let shown = 0;
   for (const card of cards) {
     const hit = (!q || card.dataset.search.includes(q))
-      && (!v || card.dataset.voice === v)
+      && (!v || card.dataset.voices.split(',').includes(v))
       && (!r || card.dataset.region === r);
     card.hidden = !hit;
-    if (hit) shown++;
+    if (hit) {
+      shown++;
+      // Filtering to a voice should play that voice, not leave the card on
+      // whichever one happened to be selected.
+      const pick = card.querySelector('.voice-pick');
+      if (v && pick && pick.value !== v) { pick.value = v; swap(card); }
+    }
   }
   count.textContent = shown + (shown === 1 ? ' language' : ' languages');
   document.getElementById('empty').hidden = shown > 0;
@@ -122,6 +129,21 @@ function apply() {
   for (const audio of document.querySelectorAll('audio')) {
     if (audio.closest('.card').hidden && !audio.paused) audio.pause();
   }
+}
+// Swapping voice reloads the clip in place; a playing one is stopped first so
+// the new source does not start mid-way through the old one's progress bar.
+function swap(card) {
+  const audio = card.querySelector('audio');
+  const pick = card.querySelector('.voice-pick');
+  if (!audio || !pick) return;
+  const src = JSON.parse(card.dataset.srcs)[pick.value];
+  if (!src || audio.getAttribute('src') === src) return;
+  audio.pause();
+  audio.setAttribute('src', src);
+  audio.load();
+}
+for (const pick of document.querySelectorAll('.voice-pick')) {
+  pick.addEventListener('change', (e) => swap(e.target.closest('.card')));
 }
 // Only one clip at a time: starting a second pauses the first.
 document.addEventListener('play', (event) => {
@@ -136,35 +158,67 @@ apply();
 """
 
 
-def _card(sample: Sample) -> str:
+def _card(group: Sequence[Sample]) -> str:
+    """One card per language. Several voices become a picker, not more cards.
+
+    With every voice for every language the gallery is 30x the clips but the
+    same 200-odd languages, so the language stays the unit you browse and the
+    voice becomes a control inside it.
+    """
+    sample = group[0]
     bits = [sample.code]
     if sample.family:
         bits.append(sample.family)
     if sample.region:
         bits.append(sample.region)
-    character = voices_module.describe(sample.voice)
+    voices = sorted(group, key=lambda s: s.voice)
     search_key = " ".join([sample.name, sample.code, sample.family or "",
-                           sample.region or "", sample.voice]).lower()
-    return f"""      <article class="card" data-voice="{html.escape(sample.voice)}"
+                           sample.region or ""] + [s.voice for s in voices]).lower()
+    srcs = json.dumps({s.voice: (s.audio or "") for s in voices})
+
+    if len(voices) == 1:
+        picker = (f'<span class="voice" title="{html.escape(voices_module.describe(sample.voice))}">'
+                  f'{html.escape(sample.voice)}</span>')
+    else:
+        options = "".join(
+            f'<option value="{html.escape(s.voice)}">{html.escape(s.voice)} — '
+            f'{html.escape(voices_module.describe(s.voice))}</option>' for s in voices)
+        picker = (f'<select class="voice-pick" aria-label="Voice for '
+                  f'{html.escape(sample.name)}">{options}</select>')
+
+    return f"""      <article class="card" data-voices="{html.escape(','.join(s.voice for s in voices))}"
         data-region="{html.escape(sample.region or '')}"
+        data-srcs='{html.escape(srcs)}'
         data-search="{html.escape(search_key)}">
         <div class="row" style="justify-content:space-between;align-items:start;gap:8px">
           <div>
             <h3>{html.escape(sample.name)}</h3>
             <p class="meta">{html.escape(' · '.join(bits))}</p>
           </div>
-          <span class="voice" title="{html.escape(character)}">{html.escape(sample.voice)}</span>
+          {picker}
         </div>
-        <audio controls preload="none" src="{html.escape(sample.audio or '')}"></audio>
+        <audio controls preload="none" src="{html.escape(voices[0].audio or '')}"></audio>
         <p class="text">{html.escape(sample.text)}</p>
         <p class="norm">{html.escape(sample.normalised_text)}</p>
       </article>"""
 
 
 def render(samples: Sequence[Sample], title: str = "African Speech Samples") -> str:
-    samples = sorted(samples, key=lambda s: s.name.lower())
+    groups: Dict[str, List[Sample]] = {}
+    for sample in samples:
+        groups.setdefault(sample.code, []).append(sample)
+    ordered = sorted(groups.values(), key=lambda g: g[0].name.lower())
     used_voices = sorted({s.voice for s in samples})
     regions = sorted({s.region for s in samples if s.region})
+    per_language = max((len(g) for g in ordered), default=0)
+    lede_voices = (
+        f"Every language is read by all <strong>{len(used_voices)}</strong> voices, in the same "
+        "sentence — so switching voice on a card changes the voice and nothing else. Pick the "
+        "one you want and name it in your own run."
+        if per_language > 1 else
+        "Each language is spoken by a <strong>different</strong> one of Gemini's 30 voices, so "
+        "the gallery covers the whole catalogue — the voice badge tells you which one to ask "
+        "for in your own run.")
 
     catalogue = coverage.load()
     pending = [e for e in catalogue.sorted() if e.has_g2p and not e.has_text]
@@ -195,12 +249,11 @@ def render(samples: Sequence[Sample], title: str = "African Speech Samples") -> 
   <h1>{html.escape(title)}</h1>
   <p class="lede">One synthetic speech sample per African language, built with
     <a href="https://github.com/AfriSpeech/afrispeech-synth">afrispeech-synth</a>.
-    Each language is spoken by a <strong>different</strong> one of Gemini TTS's 30 voices, so the
-    gallery covers the whole catalogue — the voice badge tells you which one to ask for in your
-    own run.</p>
+    {lede_voices}</p>
   <ul class="stats">
-    <li><b>{len(samples)}</b><span>languages</span></li>
+    <li><b>{len(ordered)}</b><span>languages</span></li>
     <li><b>{len(used_voices)}</b><span>voices</span></li>
+    <li><b>{len(samples)}</b><span>clips</span></li>
     <li><b>{len(regions)}</b><span>regions</span></li>
   </ul>
 </header>
@@ -220,7 +273,7 @@ def render(samples: Sequence[Sample], title: str = "African Speech Samples") -> 
 </div>
 
 <main class="grid">
-{chr(10).join(_card(s) for s in samples)}
+{chr(10).join(_card(g) for g in ordered)}
 </main>
 <p class="empty" id="empty" hidden>No language matches that filter.</p>
 
