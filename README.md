@@ -287,6 +287,12 @@ tts:
   sample_rate: 24000
   api_key_env: GEMINI_API_KEY # the key is read from the environment, never the file
 
+audio:                        # what lands on disk, vs what the API returned
+  format: wav                 # wav | mp3 | flac | ogg | opus
+  sample_rate: null           # null keeps the model's native rate (24 kHz)
+  channels: 1
+  bitrate: 64k                # lossy formats only
+
 package:
   formats: [parquet, ljspeech]
   shard_target_mb: 190

@@ -8,7 +8,8 @@ from __future__ import annotations
 
 import os
 
-from .base import Clip, RetryableTTSError, TTSBackend, TTSError, pcm_to_wav
+from .base import (Clip, RetryableTTSError, TTSBackend, TTSError, pcm_to_wav,
+                   wav_sample_rate)
 
 RETRYABLE_MARKERS = ("429", "rate limit", "resource_exhausted", "quota",
                      "500", "502", "503", "504", "unavailable", "deadline",
@@ -88,5 +89,8 @@ class GeminiTTS(TTSBackend):
         data = bytes(audio)
         if not data.startswith(b"RIFF"):
             data = pcm_to_wav(data, mime_type, default_rate=self.config.sample_rate)
-        return Clip(audio=data, mime_type="audio/wav", voice=voice,
-                    sample_rate=self.config.sample_rate)
+        # The rate the model actually sent, not the one the config hoped for.
+        # Gemini has no output-rate parameter — it always returns 24 kHz — so
+        # anything else is the business of the audio conversion step.
+        rate = wav_sample_rate(data) or self.config.sample_rate
+        return Clip(audio=data, mime_type="audio/wav", voice=voice, sample_rate=rate)
