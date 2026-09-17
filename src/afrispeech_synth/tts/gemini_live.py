@@ -36,10 +36,17 @@ from .base import (Clip, RetryableTTSError, TTSBackend, TTSError, pcm_to_wav,
 # The declared rate is still read per response rather than trusted from here.
 LIVE_RATE = 24000
 
+# Websocket close codes the Live API uses for conditions that pass: 1007 and
+# 1011 are server-side faults, 1008 is the session being abandoned mid-turn
+# ("the operation was aborted") under concurrency, and 1012/1013 are restarts.
+# A dropped session is not a bad sentence — the same text succeeds on a fresh
+# socket, so anything that only says the connection went away must be retried.
+# Treating 1008 as fatal silently dropped 2.4% of a full run.
 RETRYABLE_MARKERS = ("429", "rate limit", "resource_exhausted", "quota",
                      "500", "502", "503", "504", "unavailable", "deadline",
                      "timeout", "internal error", "connection closed",
-                     "going away", "keepalive", "1011", "1007")
+                     "going away", "keepalive", "aborted", "reset",
+                     "1007", "1008", "1011", "1012", "1013")
 
 
 class _Session:
