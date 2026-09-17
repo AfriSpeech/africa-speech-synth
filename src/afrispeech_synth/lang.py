@@ -43,9 +43,27 @@ class Language:
         return self.g2p_code is not None
 
 
+_G2P_REGISTRY = None
+
+
 def _g2p_registry() -> dict:
-    from africa_g2p import registry
-    return registry()
+    """Every language africa-g2p can convert, with metadata where it exists.
+
+    `registry()` is the metadata table and `available_languages()` is what can
+    actually be converted; tables have been added faster than metadata rows, so
+    the two differ by hundreds. Reading only the registry meant a language with
+    a rule table but no description of itself was reported as unsupported.
+    """
+    global _G2P_REGISTRY
+    if _G2P_REGISTRY is None:
+        from africa_g2p import available_languages, registry
+        meta = registry()
+        _G2P_REGISTRY = {code: (meta.get(code) or {"iso639_3": code})
+                         for code in available_languages()}
+        # Keep metadata-only rows too: they may carry aliases worth resolving.
+        for code, entry in meta.items():
+            _G2P_REGISTRY.setdefault(code, entry)
+    return _G2P_REGISTRY
 
 
 def _g2p_name_index() -> dict:

@@ -52,10 +52,13 @@ africa-g2p converts **408** African languages to universal orthography,
 africa-corpus-builder has text for **693**, and **223 are in both** — those need nothing
 from you but a name:
 
-The 408 is measured rather than read off the registry, which lists 400 keys. Eight more
-corpus languages — Akan, Luo, Luwo, Mwan, Ngemba, Kamba, Malgache and Tonga — reach a table
-through an alias, so matching on keys alone silently dropped them from every language list
-and from the samples gallery.
+These counts are measured, not read off a list. africa-g2p exposes two different things —
+`registry()`, its metadata table, and `available_languages()`, what it can actually convert —
+and they are not the same size, because rule tables get added faster than metadata rows. Asking
+the registry reported every language with a table but no description of itself as unsupported,
+and the same key matching dropped eight more (Akan, Luo, Luwo, Mwan, Ngemba, Kamba, Malgache,
+Tonga) that reach a table through an alias. Readiness now asks whether the language really
+converts, so the number tracks africa-g2p as tables land instead of lagging a release behind.
 
 ```bash
 afrispeech-synth run --lang Zulu --source corpus:zul --out out/zul
@@ -282,6 +285,10 @@ afrispeech-synth space \
   --audio-repo AfriSpeech/synthetic-voice-samples-africa
 ```
 
+`--distinct` gives each voice its own sentence instead of repeating one. That turns the
+gallery into a small speech dataset — 30 distinct sentences per language, one per voice —
+at the cost of comparability, since the voices no longer read the same line.
+
 `--audio-repo` puts the clips in a **dataset** repo and leaves the Space as just the page.
 Once the gallery carries every voice for every language that is thousands of files and
 hundreds of megabytes — which belongs somewhere people can load and cite, not buried in a
@@ -297,6 +304,7 @@ first. Clips are published as generated — 24 kHz mono WAV. `--compress` re-enc
 ```bash
 afrispeech-synth samples --all-voices --limit 3   # 3 languages x 30 voices, to preview
 afrispeech-synth samples --all-voices             # the full matrix
+afrispeech-synth samples --all-voices --distinct  # a different sentence per voice
 ```
 
 ### One stage at a time

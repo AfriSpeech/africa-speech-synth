@@ -73,17 +73,37 @@ class Sample:
 
 def _pick_sentence(sentences: Sequence[str]) -> Optional[str]:
     """First sentence in the length window — deterministic, so reruns match."""
+    picked = _pick_sentences(sentences, 1)
+    return picked[0] if picked else None
+
+
+def _pick_sentences(sentences: Sequence[str], count: int) -> List[str]:
+    """The first `count` distinct sentences in the length window.
+
+    Deterministic, so a rerun produces the same dataset rather than a new one.
+    Duplicates are skipped: corpus text repeats, and a language whose voices all
+    read the same line twice is quietly less varied than its clip count claims.
+    """
+    out, seen = [], set()
     for sentence in sentences:
-        if SAMPLE_MIN_CHARS <= len(sentence) <= SAMPLE_MAX_CHARS:
-            return sentence
-    return None
+        if not (SAMPLE_MIN_CHARS <= len(sentence) <= SAMPLE_MAX_CHARS):
+            continue
+        key = sentence.strip()
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(sentence)
+        if len(out) >= count:
+            break
+    return out
 
 
 def plan(codes: Optional[Sequence[str]] = None,
          voice_list: Optional[Sequence[str]] = None,
          limit: Optional[int] = None,
          normalise: str = "grapheme",
-         all_voices: bool = False) -> List[Sample]:
+         all_voices: bool = False,
+         distinct: bool = False) -> List[Sample]:
     """Choose a sentence and voice(s) for each language, without calling any API.
 
     By default each language gets one voice, spread round-robin so the gallery
@@ -106,11 +126,19 @@ def plan(codes: Optional[Sequence[str]] = None,
         except Exception as exc:
             print(f"  [{position}/{len(entries)}] {entry.code}: no text ({exc})", flush=True)
             continue
-        sentence = _pick_sentence(sentences)
-        if not sentence:
+        wanted = len(pool) if (all_voices and distinct) else 1
+        chosen_text = _pick_sentences(sentences, wanted)
+        if not chosen_text:
             print(f"  [{position}/{len(entries)}] {entry.code}: no sentence in "
                   f"{SAMPLE_MIN_CHARS}-{SAMPLE_MAX_CHARS} chars", flush=True)
             continue
+        if len(chosen_text) < wanted:
+            # Fewer usable sentences than voices: take the voices we can fill
+            # rather than repeating text, so "distinct" stays true.
+            print(f"  [{position}/{len(entries)}] {entry.code}: only "
+                  f"{len(chosen_text)} distinct sentences, using that many voices",
+                  flush=True)
+        sentence = chosen_text[0]
 
         language = resolve(entry.code)
         try:
@@ -121,12 +149,21 @@ def plan(codes: Optional[Sequence[str]] = None,
             print(f"  [{position}/{len(entries)}] {entry.code}: {normalise} unavailable "
                   f"({type(exc).__name__}), sending original text", flush=True)
             normalised = sentence
-        chosen = pool if all_voices else [assignment[entry.code]]
-        for voice in chosen:
+        if all_voices and distinct:
+            pairs = list(zip(pool, chosen_text))
+        elif all_voices:
+            pairs = [(voice, sentence) for voice in pool]
+        else:
+            pairs = [(assignment[entry.code], sentence)]
+        for voice, text in pairs:
+            try:
+                text_norm = Normaliser(language, normalise)(text)
+            except Exception:
+                text_norm = text
             samples.append(Sample(
                 code=entry.code, name=entry.name, family=entry.family,
-                region=entry.region, voice=voice, text=sentence,
-                normalised_text=normalised,
+                region=entry.region, voice=voice, text=text,
+                normalised_text=text_norm,
             ))
         if position % 25 == 0:
             print(f"  planned {len(samples)}/{position}", flush=True)
@@ -154,13 +191,16 @@ def _utterances(samples: Sequence[Sample]) -> List[Utterance]:
 
 def build(config, out_dir: str, codes: Optional[Sequence[str]] = None,
           limit: Optional[int] = None, resume: bool = True,
-          all_voices: bool = False, compress: bool = False) -> List[Sample]:
+          all_voices: bool = False, compress: bool = False,
+          distinct: bool = False) -> List[Sample]:
     """Plan, synthesise and collect samples into `out_dir/audio`."""
     print(f"Planning samples ({'all ready languages' if not codes else len(codes)}, "
           f"normalise={config.normalise}"
-          f"{', every voice' if all_voices else ''})", flush=True)
+          f"{', every voice' if all_voices else ''}"
+          f"{', distinct sentences' if distinct else ''})", flush=True)
     samples = plan(codes, config.tts.voices or None, limit=limit,
-                   normalise=config.normalise, all_voices=all_voices)
+                   normalise=config.normalise, all_voices=all_voices,
+                   distinct=distinct)
     print(f"  {len(samples)} languages with a usable sentence", flush=True)
     if not samples:
         return []

@@ -197,6 +197,14 @@ function swap(card) {
   const pick = card.querySelector('.voice-pick');
   if (!audio || !pick) return;
   const src = JSON.parse(card.dataset.srcs)[pick.value];
+  // Each voice may have its own sentence; keep the text with its clip.
+  if (card.dataset.varied) {
+    const t = JSON.parse(card.dataset.texts)[pick.value];
+    if (t) {
+      card.querySelector('.text').textContent = t[0];
+      card.querySelector('.norm').textContent = t[1];
+    }
+  }
   if (!src || audio.getAttribute('src') === src) return;
   audio.pause();
   audio.setAttribute('src', src);
@@ -233,8 +241,13 @@ def _card(group: Sequence[Sample]) -> str:
         bits.append(sample.region)
     voices = sorted(group, key=lambda s: s.voice)
     search_key = " ".join([sample.name, sample.code, sample.family or "",
-                           sample.region or ""] + [s.voice for s in voices]).lower()
+                           sample.region or ""] + [s.voice for s in voices]
+                          + [s.text for s in voices]).lower()
     srcs = json.dumps({s.voice: (s.audio or "") for s in voices})
+    # With --distinct each voice reads a different sentence, so the card swaps
+    # the text with the clip. Identical text across voices is sent once.
+    texts = json.dumps({s.voice: [s.text, s.normalised_text] for s in voices})
+    varied = len({s.text for s in voices}) > 1
 
     if len(voices) == 1:
         picker = (f'<span class="voice" title="{html.escape(voices_module.describe(sample.voice))}">'
@@ -249,6 +262,8 @@ def _card(group: Sequence[Sample]) -> str:
     return f"""      <article class="card" data-voices="{html.escape(','.join(s.voice for s in voices))}"
         data-region="{html.escape(sample.region or '')}"
         data-srcs='{html.escape(srcs)}'
+        data-texts='{html.escape(texts)}'
+        data-varied="{'1' if varied else ''}"
         data-search="{html.escape(search_key)}">
         <div class="row" style="justify-content:space-between;align-items:start;gap:8px">
           <div>

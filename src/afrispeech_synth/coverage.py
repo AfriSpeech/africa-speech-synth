@@ -96,10 +96,16 @@ def load(refresh: bool = False) -> Coverage:
     if _CACHE is not None and not refresh:
         return _CACHE
 
-    from africa_g2p import registry
+    from africa_g2p import available_languages, registry
 
+    # `registry()` is the metadata table and `available_languages()` is what
+    # africa-g2p can actually convert — they are not the same size. Tables have
+    # been added faster than metadata rows, so reading the registry alone hid
+    # every language that had a table but no description of itself.
+    meta = registry()
     entries: Dict[str, Entry] = {}
-    for code, record in registry().items():
+    for code in available_languages():
+        record = meta.get(code) or {}
         regions = record.get("regions") or []
         entries[code] = Entry(
             code=code,
@@ -112,6 +118,11 @@ def load(refresh: bool = False) -> Coverage:
     for code, name in _corpus_languages().items():
         if code in entries:
             entries[code].has_text = True
+            # A table can exist without a metadata row, leaving the entry named
+            # after its own code. The corpus knows the language's name, so a
+            # gallery shows "Dagbani" rather than "dag".
+            if name and entries[code].name == code:
+                entries[code].name = name
         else:
             entries[code] = Entry(code=code, name=name or code, has_text=True)
 
