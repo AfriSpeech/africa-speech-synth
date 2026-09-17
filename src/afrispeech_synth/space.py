@@ -4,17 +4,75 @@ The Space is a build artefact of this repository, not a project of its own: the
 page is generated here from `samples.json` plus the audio files, so it is always
 consistent with whatever the pipeline currently produces.
 
-Static Space, no backend — the page is one HTML file with the clips beside it.
+Static Space, no backend — the page is one HTML file with the clips beside it,
+or, with `--audio-repo`, one HTML file that streams them from a dataset repo.
+Splitting the two matters once the gallery carries every voice for every
+language: that is thousands of clips and hundreds of megabytes, which belongs
+in a dataset people can load and reuse, not inside a Space nobody can cite.
 """
 from __future__ import annotations
 
 import html
 import json
 import os
+from dataclasses import replace
 from typing import Dict, List, Optional, Sequence
 
 from . import coverage, voices as voices_module
 from .samples import Sample
+
+# The gallery is synthetic audio, and a listener should know that before they
+# press play rather than after — "African Speech Samples" reads like a corpus
+# of recorded speech, which is the one thing this is not. The title matches the
+# dataset the clips live in, so the page and its audio are obviously the same
+# artefact rather than two things that happen to look alike.
+DEFAULT_TITLE = "Synthetic Voice Samples · Africa"
+
+DATASET_README = """---
+license: mit
+task_categories:
+- text-to-speech
+language_creators:
+- found
+pretty_name: {title}
+tags:
+- synthetic
+- tts
+- synthetic
+- african-languages
+- speech-synthesis
+---
+
+# {title}
+
+**Synthetic speech. No human speaker was recorded for any clip here.**
+
+Every clip was generated with [afrispeech-synth](https://github.com/AfriSpeech/afrispeech-synth)
+from Google Gemini, reading text from
+[africa-corpus](https://huggingface.co/datasets/AfriSpeech/africa-corpus).
+
+- **{clips} clips** across **{languages} languages**, in **{voices} Gemini voices**
+- Each language is read by every voice, **the same sentence throughout**, so the voices are
+  directly comparable — the voice changes and nothing else does
+- WAV source, published here as mono MP3; the generator writes 24 kHz 16-bit PCM
+
+`samples.json` carries one row per clip: language code and name, family, region, voice, the
+original sentence, the normalised text that was actually spoken, and the audio path.
+
+## What this is for
+
+Choosing a voice before generating a dataset of your own, and hearing how far a synthetic
+voice gets on a given language. Quality varies enormously by language — the voices were
+built for widely-spoken languages and are being asked to read others.
+
+## What this is not
+
+Recorded speech, a pronunciation reference, or evidence that a language *sounds* like this.
+A synthetic clip is a model's guess at an orthography. Treat it as a starting point for
+bootstrapping, never as ground truth.
+
+Browse and listen: **{space_url}**
+"""
 
 SPACE_README = """---
 title: {title}
@@ -27,13 +85,15 @@ pinned: false
 license: mit
 tags:
 - tts
+- synthetic
 - african-languages
 - speech-synthesis
 ---
 
 # {title}
 
-One synthetic speech sample per African language, generated with
+**Synthetic speech — model-generated, not recorded.** No human speaker was recorded for any
+clip here. Generated with
 [afrispeech-synth](https://github.com/AfriSpeech/afrispeech-synth).
 
 Voices come from Google Gemini's 30-voice catalogue — either one per language, or every
@@ -203,7 +263,7 @@ def _card(group: Sequence[Sample]) -> str:
       </article>"""
 
 
-def render(samples: Sequence[Sample], title: str = "African Speech Samples") -> str:
+def render(samples: Sequence[Sample], title: str = DEFAULT_TITLE) -> str:
     groups: Dict[str, List[Sample]] = {}
     for sample in samples:
         groups.setdefault(sample.code, []).append(sample)
@@ -309,8 +369,15 @@ def render(samples: Sequence[Sample], title: str = "African Speech Samples") -> 
 """
 
 
-def build(samples: Sequence[Sample], out_dir: str, title: str = "African Speech Samples") -> str:
+def build(samples: Sequence[Sample], out_dir: str, title: str = DEFAULT_TITLE,
+          audio_base: Optional[str] = None) -> str:
     os.makedirs(out_dir, exist_ok=True)
+    if audio_base:
+        # Rewrite to absolute URLs so the page works with the clips living in a
+        # dataset repo rather than beside it.
+        base = audio_base.rstrip("/")
+        samples = [replace(s, audio=f"{base}/{s.audio}") if s.audio else s
+                   for s in samples]
     page = os.path.join(out_dir, "index.html")
     with open(page, "w", encoding="utf-8") as handle:
         handle.write(render(samples, title=title))
@@ -322,8 +389,42 @@ def build(samples: Sequence[Sample], out_dir: str, title: str = "African Speech 
     return page
 
 
+def push_audio(out_dir: str, repo_id: str, title: str = DEFAULT_TITLE,
+               space_repo: Optional[str] = None, private: bool = False,
+               token: Optional[str] = None) -> str:
+    """Upload the clips to a dataset repo; return the base URL to stream from."""
+    from huggingface_hub import HfApi
+
+    from .publish import _token
+    from .samples import load_manifest
+
+    samples = load_manifest(out_dir)
+    languages = len({s.code for s in samples})
+    voices = len({s.voice for s in samples})
+    space_url = (f"https://huggingface.co/spaces/{space_repo}" if space_repo
+                 else "https://huggingface.co/spaces/AfriSpeech")
+
+    api = HfApi(token=_token(token))
+    api.create_repo(repo_id=repo_id, repo_type="dataset", private=private, exist_ok=True)
+
+    card = os.path.join(out_dir, "DATASET_README.md")
+    with open(card, "w", encoding="utf-8") as handle:
+        handle.write(DATASET_README.format(title=title, clips=len(samples),
+                                           languages=languages, voices=voices,
+                                           space_url=space_url))
+    print(f"  uploading audio -> dataset {repo_id}", flush=True)
+    api.upload_folder(folder_path=out_dir, repo_id=repo_id, repo_type="dataset",
+                      allow_patterns=["audio/**", "samples.json"])
+    api.upload_file(path_or_fileobj=card, path_in_repo="README.md",
+                    repo_id=repo_id, repo_type="dataset")
+    os.remove(card)
+    base = f"https://huggingface.co/datasets/{repo_id}/resolve/main"
+    print(f"  audio: https://huggingface.co/datasets/{repo_id}", flush=True)
+    return base
+
+
 def push(out_dir: str, repo_id: str, private: bool = False,
-         token: Optional[str] = None) -> str:
+         token: Optional[str] = None, audio_elsewhere: bool = False) -> str:
     from huggingface_hub import HfApi
 
     from .publish import _token
@@ -332,8 +433,11 @@ def push(out_dir: str, repo_id: str, private: bool = False,
     api.create_repo(repo_id=repo_id, repo_type="space", space_sdk="static",
                     private=private, exist_ok=True)
     print(f"  uploading {out_dir} -> {repo_id}", flush=True)
+    ignore = ["work/**", "*.tmp"]
+    if audio_elsewhere:
+        ignore.append("audio/**")
     api.upload_folder(folder_path=out_dir, repo_id=repo_id, repo_type="space",
-                      ignore_patterns=["work/**", "*.tmp"])
+                      ignore_patterns=ignore)
     url = f"https://huggingface.co/spaces/{repo_id}"
     print(f"  live: {url}", flush=True)
     return url

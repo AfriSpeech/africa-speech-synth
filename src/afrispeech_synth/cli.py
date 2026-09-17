@@ -167,13 +167,22 @@ def cmd_space(args) -> int:
     from . import samples as samples_module
     from . import space as space_module
 
+    args.title = args.title or space_module.DEFAULT_TITLE
+
     built = samples_module.load_manifest(args.dir)
     if not built:
         print(f"No samples.json in {args.dir}. Run `samples` first.", file=sys.stderr)
         return 1
-    space_module.build(built, args.dir, title=args.title)
+    # Audio first: the page needs the dataset URLs baked in before it is built.
+    audio_base = None
+    if args.audio_repo:
+        audio_base = space_module.push_audio(
+            args.dir, args.audio_repo, title=args.title,
+            space_repo=args.repo, private=args.private)
+    space_module.build(built, args.dir, title=args.title, audio_base=audio_base)
     if args.repo:
-        space_module.push(args.dir, args.repo, private=args.private)
+        space_module.push(args.dir, args.repo, private=args.private,
+                          audio_elsewhere=bool(audio_base))
     else:
         print(f"\nOpen {os.path.join(args.dir, 'index.html')} to preview, then re-run "
               f"with --repo org/name to publish.")
@@ -292,7 +301,13 @@ def build_parser() -> argparse.ArgumentParser:
         "space", help="Build the samples gallery page, and optionally push it as a HF Space")
     space_parser.add_argument("--dir", default="space", help="Directory holding samples.json")
     space_parser.add_argument("--repo", help="HuggingFace Space to push to, e.g. AfriSpeech/samples")
-    space_parser.add_argument("--title", default="African Speech Samples")
+    space_parser.add_argument("--title", default=None,
+                              help="Page title (default names it as synthetic speech)")
+    space_parser.add_argument("--audio-repo",
+                              help="Dataset repo to host the clips in, e.g. "
+                                   "AfriSpeech/synthetic-voice-samples-africa. The Space "
+                                   "then streams from it instead of carrying hundreds of "
+                                   "MB itself.")
     space_parser.add_argument("--private", action="store_true")
     space_parser.set_defaults(func=cmd_space)
 

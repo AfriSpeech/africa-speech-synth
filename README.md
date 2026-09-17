@@ -255,7 +255,18 @@ its own:
 afrispeech-synth samples --limit 20          # generate clips into space/
 afrispeech-synth space                       # build space/index.html, preview locally
 afrispeech-synth space --repo org/my-samples # publish it
+
+# Full voice matrix: clips in a dataset, the Space just streams them
+afrispeech-synth samples --all-voices
+afrispeech-synth space \
+  --repo AfriSpeech/afrispeech-synth-samples \
+  --audio-repo AfriSpeech/synthetic-voice-samples-africa
 ```
+
+`--audio-repo` puts the clips in a **dataset** repo and leaves the Space as just the page.
+Once the gallery carries every voice for every language that is thousands of files and
+hundreds of megabytes — which belongs somewhere people can load and cite, not buried in a
+Space. The page then streams from the dataset.
 
 `samples` covers every ready language by default and spreads the 30 voices evenly across
 them, so the gallery is also the voice catalogue. `--all-voices` instead reads every language
