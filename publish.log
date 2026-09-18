@@ -1,0 +1,30 @@
+  16,856 clips, 38.3 h, 561 languages, 30 voices
+  16856 clips -> 16 shard(s)
+  [1/16] space-live/data/train-00000-of-00016.parquet rows=1063 size=414.8MB
+  [2/16] space-live/data/train-00001-of-00016.parquet rows=1061 size=414.5MB
+  [3/16] space-live/data/train-00002-of-00016.parquet rows=1071 size=414.4MB
+  [4/16] space-live/data/train-00003-of-00016.parquet rows=1064 size=414.5MB
+  [5/16] space-live/data/train-00004-of-00016.parquet rows=1067 size=414.3MB
+  [6/16] space-live/data/train-00005-of-00016.parquet rows=1068 size=414.7MB
+  [7/16] space-live/data/train-00006-of-00016.parquet rows=1061 size=414.6MB
+  [8/16] space-live/data/train-00007-of-00016.parquet rows=1066 size=414.5MB
+  [9/16] space-live/data/train-00008-of-00016.parquet rows=1074 size=414.4MB
+  [10/16] space-live/data/train-00009-of-00016.parquet rows=1069 size=414.5MB
+  [11/16] space-live/data/train-00010-of-00016.parquet rows=1058 size=414.4MB
+  [12/16] space-live/data/train-00011-of-00016.parquet rows=1070 size=414.1MB
+  [13/16] space-live/data/train-00012-of-00016.parquet rows=1068 size=414.3MB
+  [14/16] space-live/data/train-00013-of-00016.parquet rows=1064 size=414.2MB
+  [15/16] space-live/data/train-00014-of-00016.parquet rows=1066 size=414.2MB
+  [16/16] space-live/data/train-00015-of-00016.parquet rows=866 size=334.5MB
+  uploading shards -> AfriSpeech/multivoice-synthetic-speech
+Commit of 250 files failed (BadRequestError('(Request ID: Root=1-6aacc9ac-4addbf6e0bf48ef47681826b;de0c058e-9325-40b3-a5e8-50c12f85d275)\n\nBad request for commit endpoint:\nYour push was rejected because it contains too many files per directory. Each directory in your git repo can only contain up to 10000 files. Offending reference: refs/heads/main Offending directories: /audio/\nYour push was rejected because it contains too many files per directory. Each directory in your git repo can only contain up to 10000 files.  Offending reference: refs/heads/main Offending directories: /audio/')). Retrying in smaller chunks.
+Commit of 200 files failed (BadRequestError('(Request ID: Root=1-6aacc9ae-2022c38b0706a6cf588ae06d;7c4b174c-20e4-4941-9c68-a5bb31dc719e)\n\nBad request for commit endpoint:\nYour push was rejected because it contains too many files per directory. Each directory in your git repo can only contain up to 10000 files. Offending reference: refs/heads/main Offending directories: /audio/\nYour push was rejected because it contains too many files per directory. Each directory in your git repo can only contain up to 10000 files.  Offending reference: refs/heads/main Offending directories: /audio/')). Retrying in smaller chunks.
+Commit of 125 files failed (BadRequestError('(Request ID: Root=1-6aacc9b0-5bb0f2a8797dda3a14b2eb2a;5ba01037-c876-42f6-8ce9-45df5638fadc)\n\nBad request for commit endpoint:\nYour push was rejected because it contains too many files per directory. Each directory in your git repo can only contain up to 10000 files. Offending reference: refs/heads/main Offending directories: /audio/\nYour push was rejected because it contains too many files per directory. Each directory in your git repo can only contain up to 10000 files.  Offending reference: refs/heads/main Offending directories: /audio/')). Retrying in smaller chunks.
+Commit of 100 files failed (BadRequestError('(Request ID: Root=1-6aacc9b1-5088667c74779760590664ed;6d75e275-9918-4375-9dbe-6ba23618c04d)\n\nBad request for commit endpoint:\nYour push was rejected because it contains too many files per directory. Each directory in your git repo can only contain up to 10000 files. Offending reference: refs/heads/main Offending directories: /audio/\nYour push was rejected because it contains too many files per directory. Each directory in your git repo can only contain up to 10000 files.  Offending reference: refs/heads/main Offending directories: /audio/')). Retrying in smaller chunks.
+Commit of 75 files failed (BadRequestError('(Request ID: Root=1-6aacc9b2-4c9ba33c1f3ecc0b4921303f;02db9af1-8c6e-4157-a0f0-7f794735983d)\n\nBad request for commit endpoint:\nYour push was rejected because it contains too many files per directory. Each directory in your git repo can only contain up to 10000 files. Offending reference: refs/heads/main Offending directories: /audio/\nYour push was rejected because it contains too many files per directory. Each directory in your git repo can only contain up to 10000 files.  Offending reference: refs/heads/main Offending directories: /audio/')). Retrying in smaller chunks.
+Commit of 50 files failed (BadRequestError('(Request ID: Root=1-6aacc9b3-51e0cf006b19ec4d7e927c38;7f71ff6f-7224-4e21-99f6-84e858abc36e)\n\nBad request for commit endpoint:\nYour push was rejected because it contains too many files per directory. Each directory in your git repo can only contain up to 10000 files. Offending reference: refs/heads/main Offending directories: /audio/\nYour push was rejected because it contains too many files per directory. Each directory in your git repo can only contain up to 10000 files.  Offending reference: refs/heads/main Offending directories: /audio/')). Retrying in smaller chunks.
+error: (Request ID: Root=1-6aacc9b4-7aad10a810e73bdb01f263f3;8107bee6-e583-4144-8184-efafe74976e4)
+
+Bad request for commit endpoint:
+Your push was rejected because it contains too many files per directory. Each directory in your git repo can only contain up to 10000 files. Offending reference: refs/heads/main Offending directories: /audio/
+Your push was rejected because it contains too many files per directory. Each directory in your git repo can only contain up to 10000 files.  Offending reference: refs/heads/main Offending directories: /audio/

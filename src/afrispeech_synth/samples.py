@@ -226,10 +226,15 @@ def build(config, out_dir: str, codes: Optional[Sequence[str]] = None,
         record = by_name.get(_stem(sample))
         if not record:
             continue
+        # One directory per language. A flat audio/ is simpler but a Hub repo
+        # allows at most 10,000 files per directory, and an all-voices gallery
+        # passes that at a few hundred languages — the push is rejected outright.
+        language_dir = os.path.join(audio_dir, sample.code)
+        os.makedirs(language_dir, exist_ok=True)
         destination = _to_web_audio(record["audio_path"],
-                                    os.path.join(audio_dir, f"{sample.code}_{sample.voice}"),
+                                    os.path.join(language_dir, sample.voice),
                                     compress=compress)
-        sample.audio = f"audio/{os.path.basename(destination)}"
+        sample.audio = f"audio/{sample.code}/{os.path.basename(destination)}"
         kept.append(sample)
 
     total_mb = sum(os.path.getsize(os.path.join(out_dir, s.audio)) for s in kept) / 1e6

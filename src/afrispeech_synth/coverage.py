@@ -103,14 +103,8 @@ def load(refresh: bool = False) -> Coverage:
     # been added faster than metadata rows, so reading the registry alone hid
     # every language that had a table but no description of itself.
     meta = registry()
-    blocked = _universal_blocked()
     entries: Dict[str, Entry] = {}
     for code in available_languages():
-        if code in blocked:
-            # africa-g2p ships a table but marks the language as one whose text
-            # cannot be written in universal yet. Counting it ready would put a
-            # language in the gallery that fails the moment a run touches it.
-            continue
         record = meta.get(code) or {}
         regions = record.get("regions") or []
         entries[code] = Entry(
@@ -137,21 +131,18 @@ def load(refresh: bool = False) -> Coverage:
     # all convert to universal without appearing as keys themselves. Asking the
     # normaliser is the only answer that matches what a run will actually do,
     # so anything with text but no exact key is checked rather than assumed.
+    # Every language that could be run is checked by converting a word with it,
+    # rather than trusted from a list. Lists have been wrong in both directions:
+    # codes reach tables through aliases and so are missing from them, and
+    # africa-g2p has carried a private roster of languages it could not yet
+    # write, which was removed once it could. Asking the normaliser is the same
+    # question a run asks, costs about a second, and cannot silently go stale.
     for entry in entries.values():
-        if entry.has_text and not entry.has_g2p and _universal_available(entry.code):
-            entry.has_g2p = True
+        if entry.has_text:
+            entry.has_g2p = _universal_available(entry.code)
 
     _CACHE = Coverage(entries)
     return _CACHE
-
-
-def _universal_blocked() -> set:
-    """Languages africa-g2p can tabulate but not yet write in universal."""
-    try:
-        from africa_g2p.convert import _blocked
-        return set(_blocked())
-    except Exception:
-        return set()
 
 
 def _universal_available(code: str) -> bool:

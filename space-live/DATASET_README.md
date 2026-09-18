@@ -2,43 +2,86 @@
 license: mit
 task_categories:
 - text-to-speech
-language_creators:
-- found
+- automatic-speech-recognition
 pretty_name: Synthetic Voice Samples · Africa
+size_categories:
+- 10K<n<100K
 tags:
 - synthetic
 - tts
-- synthetic
 - african-languages
 - speech-synthesis
+- multilingual
+configs:
+- config_name: default
+  data_files: data/*.parquet
 ---
 
 # Synthetic Voice Samples · Africa
 
-**Synthetic speech. No human speaker was recorded for any clip here.**
+**Synthetic speech. No human speaker was recorded for any clip in this dataset.**
 
-Every clip was generated with [afrispeech-synth](https://github.com/AfriSpeech/afrispeech-synth)
-from Google Gemini, reading text from
-[africa-corpus](https://huggingface.co/datasets/AfriSpeech/africa-corpus).
+Generated with [afrispeech-synth](https://github.com/AfriSpeech/afrispeech-synth): text from
+[africa-corpus](https://huggingface.co/datasets/AfriSpeech/africa-corpus), normalised to a
+universal orthography with [africa-g2p](https://github.com/AfriSpeech/africa-g2p), spoken by
+Google Gemini's Live API.
 
-- **16856 clips** across **562 languages**, in **30 Gemini voices**
-- Each language is read by every voice, **the same sentence throughout**, so the voices are
-  directly comparable — the voice changes and nothing else does
-- WAV source, published here as mono MP3; the generator writes 24 kHz 16-bit PCM
+- **16,856 clips** · **38.3 hours** · **561 languages** · **30 voices**
+- Every clip is a **distinct sentence** — no sentence is repeated
+- Each language is read by up to 30 different voices, one sentence per voice
+- ~1.28 hours per voice
 
-`samples.json` carries one row per clip: language code and name, family, region, voice, the
-original sentence, the normalised text that was actually spoken, and the audio path.
+## Audio
 
-## What this is for
+Exactly as the model produced it — no resampling, no re-encoding, no conversion.
 
-Choosing a voice before generating a dataset of your own, and hearing how far a synthetic
-voice gets on a given language. Quality varies enormously by language — the voices were
-built for widely-spoken languages and are being asked to read others.
+| | |
+|---|---|
+| Format | WAV, 16-bit signed PCM |
+| Sample rate | 24,000 Hz |
+| Channels | 1 (mono) |
+| Clip length | 8.2s mean, 1.4-27.1s |
+
+## Two ways in
+
+`data/*.parquet` carries the audio inline for training. `audio/` holds the same clips as
+individual WAV files, which is what the browsable gallery streams and what you want if you
+need one clip rather than the set. The clips are identical; only the packaging differs.
+
+## Loading
+
+```python
+from datasets import load_dataset
+
+ds = load_dataset("AfriSpeech/multivoice-synthetic-speech", split="train")
+
+twi = ds.filter(lambda r: r["language"] == "twi")     # one language
+zephyr = ds.filter(lambda r: r["voice"] == "Zephyr")  # one voice
+```
+
+Rows are **shuffled**, so language and voice are spread across every shard: streaming the
+first shard gives a cross-section rather than one language in one voice.
+
+## Columns
+
+| Column | |
+|---|---|
+| `audio` | the clip (24 kHz mono WAV) |
+| `text` | the sentence as it appears in the corpus |
+| `normalised_text` | what the model was actually asked to read (universal orthography) |
+| `voice` | which Gemini voice spoke it |
+| `language` | ISO 639-3 code |
+| `language_name` | e.g. Dagbani |
+| `family` | e.g. Niger-Congo |
+| `region` | e.g. West Africa |
+
+`text` and `normalised_text` differ because universal orthography maps a language's own
+letters onto the shared set most African languages use — `ɔ` to `o`, `ɛ` to `e`, `gy` to `j`.
+The model read `normalised_text`.
 
 ## What this is not
 
 Recorded speech, a pronunciation reference, or evidence that a language *sounds* like this.
-A synthetic clip is a model's guess at an orthography. Treat it as a starting point for
-bootstrapping, never as ground truth.
-
-Browse and listen: **https://huggingface.co/spaces/AfriSpeech/afrispeech-synth-samples**
+A synthetic clip is a model's guess at an orthography, and quality varies enormously by
+language — these voices were built for widely-spoken languages and are being asked to read
+hundreds of others. Treat it as a starting point for bootstrapping, never as ground truth.
