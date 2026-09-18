@@ -11,8 +11,9 @@ from __future__ import annotations
 import csv
 import json
 import os
+import random
 import shutil
-from typing import List, Optional
+from typing import List, Optional, Sequence
 
 from .synth import Workspace
 
@@ -33,18 +34,28 @@ def _shard_by_size(records: List[dict], target_bytes: int) -> List[List[dict]]:
 
 # What the Hub reads to know a column holds audio. `datasets` writes exactly this
 # key into the Arrow schema; the viewer and `load_dataset` both pick it up.
-def _hf_features_metadata(sample_rate: int) -> dict:
+# String columns a caller can add beyond the four every run writes. A gallery
+# spanning hundreds of languages needs the language on the row: the alternative
+# is one dataset config per language, which makes `load_dataset` take an
+# argument nobody can guess and hides cross-language work behind 500 configs.
+EXTRA_COLUMNS = ("language", "language_name", "family", "region")
+
+
+def _hf_features_metadata(sample_rate: int, extra: Sequence[str] = ()) -> dict:
     features = {
         "audio": {"sampling_rate": sample_rate, "_type": "Audio"},
         "text": {"dtype": "string", "_type": "Value"},
         "normalised_text": {"dtype": "string", "_type": "Value"},
         "voice": {"dtype": "string", "_type": "Value"},
     }
+    for name in extra:
+        features[name] = {"dtype": "string", "_type": "Value"}
     return {b"huggingface": json.dumps({"info": {"features": features}}).encode("utf-8")}
 
 
 def to_parquet(records: List[dict], out_dir: str, sample_rate: int = 24000,
-               shard_target_mb: int = 190) -> List[str]:
+               shard_target_mb: int = 190, extra: Sequence[str] = (),
+               shuffle_seed: Optional[int] = None) -> List[str]:
     """Write shards with pyarrow rather than through `datasets`.
 
     The audio is already WAV bytes, so nothing needs encoding — but
@@ -56,6 +67,16 @@ def to_parquet(records: List[dict], out_dir: str, sample_rate: int = 24000,
     """
     import pyarrow as pa
     import pyarrow.parquet as pq
+
+    if shuffle_seed is not None:
+        # Shards are read in order, so writing them grouped by language and
+        # voice — which is how they were generated — puts every clip of one
+        # language in one shard. A reader streaming the first shard would see
+        # one language in one voice and think that was the dataset. Shuffling
+        # once, with a fixed seed, spreads both across every shard and keeps
+        # the file set reproducible.
+        records = list(records)
+        random.Random(shuffle_seed).shuffle(records)
 
     data_dir = os.path.join(out_dir, "data")
     if os.path.exists(data_dir):
@@ -69,8 +90,9 @@ def to_parquet(records: List[dict], out_dir: str, sample_rate: int = 24000,
             pa.field("text", pa.string()),
             pa.field("normalised_text", pa.string()),
             pa.field("voice", pa.string()),
+            *[pa.field(name, pa.string()) for name in extra],
         ],
-        metadata=_hf_features_metadata(sample_rate),
+        metadata=_hf_features_metadata(sample_rate, extra),
     )
 
     shards = _shard_by_size(records, shard_target_mb * 1024 * 1024)
@@ -79,6 +101,7 @@ def to_parquet(records: List[dict], out_dir: str, sample_rate: int = 24000,
     for number, shard in enumerate(shards):
         name = f"train-{number:05d}-of-{len(shards):05d}.parquet"
         audio, text, normalised, voices = [], [], [], []
+        extras = {name: [] for name in extra}
         for record in shard:
             with open(record["audio_path"], "rb") as handle:
                 audio.append({"bytes": handle.read(),
@@ -86,10 +109,13 @@ def to_parquet(records: List[dict], out_dir: str, sample_rate: int = 24000,
             text.append(record["text"])
             normalised.append(record.get("transcript", record["text"]))
             voices.append(record.get("voice", ""))
+            for field in extra:
+                extras[field].append(str(record.get(field) or ""))
             record["shard"] = f"data/{name}"
             record["file_name"] = os.path.basename(record["audio_path"])
         table = pa.Table.from_pydict(
-            {"audio": audio, "text": text, "normalised_text": normalised, "voice": voices},
+            {"audio": audio, "text": text, "normalised_text": normalised,
+             "voice": voices, **extras},
             schema=schema,
         )
         path = os.path.join(data_dir, name)
@@ -97,7 +123,7 @@ def to_parquet(records: List[dict], out_dir: str, sample_rate: int = 24000,
         paths.append(path)
         print(f"  [{number + 1}/{len(shards)}] {path} rows={table.num_rows} "
               f"size={os.path.getsize(path) / 1e6:.1f}MB", flush=True)
-        del table, audio, text, normalised, voices
+        del table, audio, text, normalised, voices, extras
     return paths
 
 

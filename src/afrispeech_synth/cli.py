@@ -175,12 +175,13 @@ def cmd_space(args) -> int:
     if not built:
         print(f"No samples.json in {args.dir}. Run `samples` first.", file=sys.stderr)
         return 1
-    # Audio first: the page needs the dataset URLs baked in before it is built.
+    # The dataset goes first: the page needs its URLs baked in before it is built.
     audio_base = None
     if args.audio_repo:
-        audio_base = space_module.push_audio(
-            args.dir, args.audio_repo, title=args.title,
-            space_repo=args.repo, private=args.private)
+        from . import gallery_dataset
+        gallery_dataset.build(args.dir, args.audio_repo, args.title)
+        audio_base = gallery_dataset.push(args.dir, args.audio_repo,
+                                          private=args.private)
     space_module.build(built, args.dir, title=args.title, audio_base=audio_base)
     if args.repo:
         space_module.push(args.dir, args.repo, private=args.private,
