@@ -159,6 +159,9 @@ footer p { max-width: 70ch; }
 """
 
 SCRIPT = """
+function clipUrl(code, voice) {
+  return AUDIO_BASE + 'audio/' + code + '/' + encodeURIComponent(voice) + AUDIO_EXT;
+}
 const cards = Array.from(document.querySelectorAll('.card'));
 const search = document.getElementById('q');
 const voiceSel = document.getElementById('voice');
@@ -196,7 +199,7 @@ function swap(card) {
   const audio = card.querySelector('audio');
   const pick = card.querySelector('.voice-pick');
   if (!audio || !pick) return;
-  const src = JSON.parse(card.dataset.srcs)[pick.value];
+  const src = clipUrl(card.dataset.code, pick.value);
   // Each voice may have its own sentence; keep the text with its clip.
   if (card.dataset.varied) {
     const t = JSON.parse(card.dataset.texts)[pick.value];
@@ -219,6 +222,12 @@ document.addEventListener('play', (event) => {
     if (audio !== event.target) audio.pause();
   }
 }, true);
+// Give every card its opening clip by the same rule the picker uses.
+for (const card of cards) {
+  const pick = card.querySelector('.voice-pick');
+  const voice = pick ? pick.value : card.dataset.voices.split(',')[0];
+  card.querySelector('audio').setAttribute('src', clipUrl(card.dataset.code, voice));
+}
 search.addEventListener('input', apply);
 voiceSel.addEventListener('change', apply);
 regionSel.addEventListener('change', apply);
@@ -243,7 +252,6 @@ def _card(group: Sequence[Sample]) -> str:
     search_key = " ".join([sample.name, sample.code, sample.family or "",
                            sample.region or ""] + [s.voice for s in voices]
                           + [s.text for s in voices]).lower()
-    srcs = json.dumps({s.voice: (s.audio or "") for s in voices})
     # With --distinct each voice reads a different sentence, so the card swaps
     # the text with the clip. Identical text across voices is sent once.
     texts = json.dumps({s.voice: [s.text, s.normalised_text] for s in voices})
@@ -259,9 +267,9 @@ def _card(group: Sequence[Sample]) -> str:
         picker = (f'<select class="voice-pick" aria-label="Voice for '
                   f'{html.escape(sample.name)}">{options}</select>')
 
-    return f"""      <article class="card" data-voices="{html.escape(','.join(s.voice for s in voices))}"
+    return f"""      <article class="card" data-code="{html.escape(sample.code)}"
+        data-voices="{html.escape(','.join(s.voice for s in voices))}"
         data-region="{html.escape(sample.region or '')}"
-        data-srcs='{html.escape(srcs)}'
         data-texts='{html.escape(texts)}'
         data-varied="{'1' if varied else ''}"
         data-search="{html.escape(search_key)}">
@@ -272,13 +280,14 @@ def _card(group: Sequence[Sample]) -> str:
           </div>
           {picker}
         </div>
-        <audio controls preload="none" src="{html.escape(voices[0].audio or '')}"></audio>
+        <audio controls preload="none"></audio>
         <p class="text">{html.escape(sample.text)}</p>
         <p class="norm">{html.escape(sample.normalised_text)}</p>
       </article>"""
 
 
-def render(samples: Sequence[Sample], title: str = DEFAULT_TITLE) -> str:
+def render(samples: Sequence[Sample], title: str = DEFAULT_TITLE,
+           audio_base: str = "") -> str:
     groups: Dict[str, List[Sample]] = {}
     for sample in samples:
         groups.setdefault(sample.code, []).append(sample)
@@ -286,6 +295,12 @@ def render(samples: Sequence[Sample], title: str = DEFAULT_TITLE) -> str:
     used_voices = sorted({s.voice for s in samples})
     regions = sorted({s.region for s in samples if s.region})
     per_language = max((len(g) for g in ordered), default=0)
+    # Clips are addressed by rule, so the page carries the base once instead of
+    # a URL per clip.
+    audio_base_js = json.dumps((audio_base.rstrip("/") + "/") if audio_base else "")
+    # The extension is part of the rule: --compress writes .mp3, not .wav.
+    first = next((s.audio for s in samples if s.audio), "") or ".wav"
+    audio_ext_js = json.dumps(os.path.splitext(first)[1] or ".wav")
     lede_voices = (
         f"Every language is read by all <strong>{len(used_voices)}</strong> voices, in the same "
         "sentence — so switching voice on a card changes the voice and nothing else. Pick the "
@@ -378,7 +393,7 @@ def render(samples: Sequence[Sample], title: str = DEFAULT_TITLE) -> str:
     <a href="https://github.com/AfriSpeech/afrispeech-selector">afrispeech-selector</a>.</p>
 </footer>
 </div>
-<script>{SCRIPT}</script>
+<script>const AUDIO_BASE = {audio_base_js}, AUDIO_EXT = {audio_ext_js};{SCRIPT}</script>
 </body>
 </html>
 """
@@ -387,15 +402,9 @@ def render(samples: Sequence[Sample], title: str = DEFAULT_TITLE) -> str:
 def build(samples: Sequence[Sample], out_dir: str, title: str = DEFAULT_TITLE,
           audio_base: Optional[str] = None) -> str:
     os.makedirs(out_dir, exist_ok=True)
-    if audio_base:
-        # Rewrite to absolute URLs so the page works with the clips living in a
-        # dataset repo rather than beside it.
-        base = audio_base.rstrip("/")
-        samples = [replace(s, audio=f"{base}/{s.audio}") if s.audio else s
-                   for s in samples]
     page = os.path.join(out_dir, "index.html")
     with open(page, "w", encoding="utf-8") as handle:
-        handle.write(render(samples, title=title))
+        handle.write(render(samples, title=title, audio_base=audio_base or ""))
     with open(os.path.join(out_dir, "README.md"), "w", encoding="utf-8") as handle:
         handle.write(SPACE_README.format(title=title))
     with open(os.path.join(out_dir, "samples.json"), "w", encoding="utf-8") as handle:

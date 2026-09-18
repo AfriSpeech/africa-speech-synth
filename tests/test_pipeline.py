@@ -273,8 +273,13 @@ def test_gallery_page_renders_every_sample():
 
     assert page.count('<article class="card"') == 3
     for sample in samples:
-        assert f'src="{sample.audio}"' in page
+        # Clips are addressed by rule — <base>/audio/<code>/<voice><ext> — so the
+        # page carries the code and the voice, not 17,000 spelled-out URLs.
+        assert f'data-code="{sample.code}"' in page
         assert sample.voice in page
+    assert "function clipUrl(" in page
+    # The extension travels with the rule: --compress writes .mp3, not .wav.
+    assert 'AUDIO_EXT = ".mp3"' in page
     # provenance the page must not quietly drop
     assert "Gemini TTS" in page and "machine-generated" in page
     assert "Bible translations" in page
