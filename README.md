@@ -17,7 +17,7 @@ export GEMINI_API_KEY=...        # https://aistudio.google.com/apikey
 afrispeech-synth run examples/twi.yaml
 ```
 
-**[Hear what it produces](https://huggingface.co/spaces/AfriSpeech/afrispeech-synth-samples)** —
+**[Hear what it produces](https://huggingface.co/spaces/AfriSpeech/afrispeech-synth-demo)** —
 one sample per language, 562 languages, a different voice each.
 
 ## What's around Gemini
@@ -270,7 +270,7 @@ afrispeech-synth run \
 
 ### Samples gallery
 
-**[Hear it: AfriSpeech/afrispeech-synth-samples](https://huggingface.co/spaces/AfriSpeech/afrispeech-synth-samples)**
+**[Hear it: AfriSpeech/afrispeech-synth-demo](https://huggingface.co/spaces/AfriSpeech/afrispeech-synth-demo)**
 — every language, in every voice. The page is built from this repo, so it has no repo of
 its own:
 
@@ -282,7 +282,7 @@ afrispeech-synth space --repo org/my-samples # publish it
 # Full voice matrix: clips in a dataset, the Space just streams them
 afrispeech-synth samples --all-voices
 afrispeech-synth space \
-  --repo AfriSpeech/afrispeech-synth-samples \
+  --repo AfriSpeech/afrispeech-synth-demo \
   --audio-repo AfriSpeech/synthetic-voice-samples-africa
 ```
 
