@@ -1,5 +1,5 @@
 ---
-title: Synthetic Voice Samples · Africa
+title: Synthetic Voice Demo · Africa
 emoji: 🎧
 colorFrom: yellow
 colorTo: green
@@ -14,7 +14,7 @@ tags:
 - speech-synthesis
 ---
 
-# Synthetic Voice Samples · Africa
+# Synthetic Voice Demo · Africa
 
 **Synthetic speech — model-generated, not recorded.** No human speaker was recorded for any
 clip here. Generated with

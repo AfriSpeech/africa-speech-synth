@@ -17,6 +17,10 @@ from .samples import load_manifest
 
 SHUFFLE_SEED = 0
 
+# The dataset holds the clips; the Space is the demo you click through to hear
+# them. Naming both "demo" would hide which one you can actually download.
+DEFAULT_TITLE = "Synthetic Voice Samples · Africa"
+
 CARD = """---
 license: mit
 task_categories:

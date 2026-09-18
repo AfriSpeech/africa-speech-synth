@@ -179,7 +179,8 @@ def cmd_space(args) -> int:
     audio_base = None
     if args.audio_repo:
         from . import gallery_dataset
-        gallery_dataset.build(args.dir, args.audio_repo, args.title)
+        gallery_dataset.build(args.dir, args.audio_repo,
+                              gallery_dataset.DEFAULT_TITLE)
         audio_base = gallery_dataset.push(args.dir, args.audio_repo,
                                           private=args.private)
     space_module.build(built, args.dir, title=args.title, audio_base=audio_base)

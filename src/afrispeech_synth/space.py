@@ -25,8 +25,10 @@ from .samples import Sample
 # press play rather than after — "African Speech Samples" reads like a corpus
 # of recorded speech, which is the one thing this is not. The title matches the
 # dataset the clips live in, so the page and its audio are obviously the same
-# artefact rather than two things that happen to look alike.
-DEFAULT_TITLE = "Synthetic Voice Samples · Africa"
+# artefact rather than two things that happen to look alike. The page is the
+# demo and the dataset is the samples themselves, so the two names differ in
+# that one word rather than being identical.
+DEFAULT_TITLE = "Synthetic Voice Demo · Africa"
 
 DATASET_README = """---
 license: mit
