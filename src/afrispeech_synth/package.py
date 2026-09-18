@@ -40,6 +40,10 @@ def _shard_by_size(records: List[dict], target_bytes: int) -> List[List[dict]]:
 # argument nobody can guess and hides cross-language work behind 500 configs.
 EXTRA_COLUMNS = ("language", "language_name", "family", "region")
 
+# Rows carry embedded audio at roughly 400 KB each, so this is about 40 MB of
+# row group — well inside the 300 MB the Hub's viewer will scan.
+ROW_GROUP_ROWS = 100
+
 
 def _hf_features_metadata(sample_rate: int, extra: Sequence[str] = ()) -> dict:
     features = {
@@ -119,7 +123,13 @@ def to_parquet(records: List[dict], out_dir: str, sample_rate: int = 24000,
             schema=schema,
         )
         path = os.path.join(data_dir, name)
-        pq.write_table(table, path)
+        # One row group per shard is pyarrow's default and unreadable here: the
+        # Hub's viewer scans a row group whole and refuses anything over 300 MB,
+        # so a 400 MB shard fails to preview at all. Embedded audio makes rows
+        # ~400 KB, so a few hundred of them is a comfortable group, and the page
+        # index lets a reader seek to one row instead of decoding the group.
+        pq.write_table(table, path, row_group_size=ROW_GROUP_ROWS,
+                       write_page_index=True)
         paths.append(path)
         print(f"  [{number + 1}/{len(shards)}] {path} rows={table.num_rows} "
               f"size={os.path.getsize(path) / 1e6:.1f}MB", flush=True)
