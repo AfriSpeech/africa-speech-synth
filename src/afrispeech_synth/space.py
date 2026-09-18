@@ -457,7 +457,11 @@ def push(out_dir: str, repo_id: str, private: bool = False,
     api.create_repo(repo_id=repo_id, repo_type="space", space_sdk="static",
                     private=private, exist_ok=True)
     print(f"  uploading {out_dir} -> {repo_id}", flush=True)
-    ignore = ["work/**", "*.tmp"]
+    # A Space is a web page, not a store: everything the dataset carries stays
+    # out of it. The parquet shards alone are gigabytes against a 1 GB Space
+    # limit, and the push is refused with a storage error that reads like a
+    # quota problem rather than the wrong files being sent.
+    ignore = ["work/**", "*.tmp", "data/**", "samples.json", "DATASET_README.md"]
     if audio_elsewhere:
         ignore.append("audio/**")
     api.upload_folder(folder_path=out_dir, repo_id=repo_id, repo_type="space",
