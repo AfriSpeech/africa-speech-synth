@@ -244,13 +244,19 @@ def _card(group: Sequence[Sample]) -> str:
     same 200-odd languages, so the language stays the unit you browse and the
     voice becomes a control inside it.
     """
-    sample = group[0]
+    sample = group[0]          # language metadata: the same across the group
     bits = [sample.code]
     if sample.family:
         bits.append(sample.family)
     if sample.region:
         bits.append(sample.region)
     voices = sorted(group, key=lambda s: s.voice)
+    # The card opens on whichever voice the picker selects, which is the first
+    # option and so the first *sorted* voice — not the first clip as the
+    # manifest happened to order them. Taking the text from the manifest order
+    # instead showed one clip's sentence beside another clip's audio until the
+    # reader changed voice and changed back.
+    opening = voices[0]
     search_key = " ".join([sample.name, sample.code, sample.family or "",
                            sample.region or ""] + [s.voice for s in voices]
                           + [s.text for s in voices]).lower()
@@ -283,8 +289,8 @@ def _card(group: Sequence[Sample]) -> str:
           {picker}
         </div>
         <audio controls preload="none"></audio>
-        <p class="text">{html.escape(sample.text)}</p>
-        <p class="norm">{html.escape(sample.normalised_text)}</p>
+        <p class="text">{html.escape(opening.text)}</p>
+        <p class="norm">{html.escape(opening.normalised_text)}</p>
       </article>"""
 
 

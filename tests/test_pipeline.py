@@ -248,11 +248,12 @@ def test_coverage_status_labels():
 
 # --------------------------------------------------------------- samples gallery
 
-def _sample(code, name, voice, region="West Africa"):
+def _sample(code, name, voice, region="West Africa", text=None):
     from afrispeech_synth.samples import Sample
+    text = text or "Akwaaba mo nyinaa wo ha"
     return Sample(code=code, name=name, family="Atlantic-Congo", region=region,
-                  voice=voice, text="Akwaaba mo nyinaa wo ha",
-                  normalised_text="akwaaba mo nyinaa wo ha", audio=f"audio/{code}.mp3")
+                  voice=voice, text=text, normalised_text=text.lower(),
+                  audio=f"audio/{code}/{voice}.mp3")
 
 
 def test_sample_sentence_pick_respects_length_window():
@@ -261,6 +262,25 @@ def test_sample_sentence_pick_respects_length_window():
     short, good, long = "too short", "x" * (SAMPLE_MIN_CHARS + 5), "y" * (SAMPLE_MAX_CHARS + 50)
     assert _pick_sentence([short, long, good]) == good
     assert _pick_sentence([short, long]) is None
+
+
+def test_card_opens_on_the_voice_it_shows_text_for():
+    """The opening clip and the opening sentence must be the same clip.
+
+    The card plays whichever voice the picker selects — the first option, so the
+    first voice alphabetically — while the text came from whatever the manifest
+    listed first. Where those differed the page opened showing one clip's
+    sentence beside another clip's audio.
+    """
+    from afrispeech_synth import space
+
+    # Manifest order deliberately unsorted: Zephyr first, Achird second.
+    samples = [_sample("twi", "Twi", "Zephyr", text="zephyr sentence"),
+               _sample("twi", "Twi", "Achird", text="achird sentence")]
+    page = space.render(samples)
+
+    assert "achird sentence" in page      # Achird sorts first, so it opens
+    assert "zephyr sentence" not in page.split("data-texts")[0]
 
 
 def test_gallery_page_renders_every_sample():
